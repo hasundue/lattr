@@ -1,9 +1,4 @@
-import {
-  getEventHash,
-  Kind,
-  signEvent,
-  SimplePool,
-} from "https://esm.sh/nostr-tools@1.10.1";
+import { getEventHash, Kind, signEvent, SimplePool } from "nostr-tools";
 import { ensurePublicKey, PrivateKey } from "./keys.ts";
 
 export function update(opts: {

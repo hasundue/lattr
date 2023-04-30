@@ -1,5 +1,5 @@
 import { distinct } from "https://deno.land/std@0.185.0/collections/distinct.ts";
-import { Kind, SimplePool } from "https://esm.sh/nostr-tools@1.10.1";
+import { Kind, SimplePool } from "nostr-tools";
 import { createEvent, now } from "./utils.ts";
 import { ensurePublicKey, PrivateKey } from "./keys.ts";
 
@@ -31,12 +31,14 @@ export function subscribe(opts: {
 
     const ref = ["e", event.id, opts.relays[0]];
     const root = event.tags.find((tag) => tag[3] === "root");
-    const es = root ? [root, [...ref, "reply"]] : [[...ref, "root"]];
+    const es = root 
+      ? [root, [...ref, "reply"]]
+      : [[...ref, "root"]];
 
     const reply = createEvent({
       kind: Kind.Text,
       created_at: now(),
-      tags: [...es, ...ps],
+      tags: [ ...es, ...ps, ],
       content: "I'm listening!",
     }, opts.privateKey);
 

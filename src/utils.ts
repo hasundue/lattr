@@ -6,7 +6,7 @@ import {
   signEvent,
   validateEvent,
   verifySignature,
-} from "https://esm.sh/nostr-tools@1.10.1";
+} from "nostr-tools";
 import { PrivateKey } from "./keys.ts";
 
 export const now = () => Math.floor(Date.now() / 1000);

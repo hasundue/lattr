@@ -1,4 +1,7 @@
 {
+  "imports": {
+    "nostr-tools": "https://esm.sh/nostr-tools"
+  },
   "tasks": {
     "start": "deno run -A main.ts",
     "dev": "deno run --watch main.ts"

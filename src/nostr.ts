@@ -1,4 +1,4 @@
-import { SimplePool } from "https://esm.sh/nostr-tools@1.10.1";
+import { SimplePool } from "nostr-tools";
 import { ensurePrivateKey } from "./keys.ts";
 import * as admin from "./admin.ts";
 import * as profile from "./profile.ts";
