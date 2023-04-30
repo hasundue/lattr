@@ -1,5 +1,5 @@
 import { distinct } from "https://deno.land/std@0.185.0/collections/distinct.ts";
-import { Kind, SimplePool } from "nostr-tools";
+import { Kind, SimplePool } from "npm:nostr-tools";
 import { createEvent, now } from "./utils.ts";
 import { ensurePublicKey, PrivateKey } from "./keys.ts";
 

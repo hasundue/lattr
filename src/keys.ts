@@ -1,5 +1,5 @@
 import "https://deno.land/std@0.185.0/dotenv/load.ts";
-import { generatePrivateKey, getPublicKey } from "nostr-tools";
+import { generatePrivateKey, getPublicKey } from "npm:nostr-tools";
 
 export type PrivateKey = string & { __type: "PrivateKey" };
 export type PublicKey = string & { __type: "PublicKey" };

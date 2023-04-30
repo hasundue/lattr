@@ -6,7 +6,7 @@ import {
   signEvent,
   validateEvent,
   verifySignature,
-} from "nostr-tools";
+} from "npm:nostr-tools";
 import { PrivateKey } from "./keys.ts";
 
 export const now = () => Math.floor(Date.now() / 1000);
