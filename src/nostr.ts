@@ -1,4 +1,4 @@
-import { SimplePool } from "npm:nostr-tools";
+import { SimplePool } from "nostr-tools";
 import { ensurePrivateKey } from "./keys.ts";
 import * as admin from "./admin.ts";
 import * as profile from "./profile.ts";

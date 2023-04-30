@@ -1,6 +1,6 @@
 {
   "imports": {
-    "crypto": "node:crypto"
+    "nostr-tools": "https://esm.sh/nostr-tools"
   },
   "tasks": {
     "dev": "deno run --watch main.ts"

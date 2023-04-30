@@ -1,4 +1,4 @@
-import { getEventHash, Kind, signEvent, SimplePool } from "npm:nostr-tools";
+import { getEventHash, Kind, signEvent, SimplePool } from "nostr-tools";
 import { ensurePublicKey, PrivateKey } from "./keys.ts";
 
 export function update(opts: {
