@@ -31,14 +31,12 @@ export function subscribe(opts: {
 
     const ref = ["e", event.id, opts.relays[0]];
     const root = event.tags.find((tag) => tag[3] === "root");
-    const es = root 
-      ? [root, [...ref, "reply"]]
-      : [[...ref, "root"]];
+    const es = root ? [root, [...ref, "reply"]] : [[...ref, "root"]];
 
     const reply = createEvent({
       kind: Kind.Text,
       created_at: now(),
-      tags: [ ...es, ...ps, ],
+      tags: [...es, ...ps],
       content: "I'm listening!",
     }, opts.privateKey);
 
