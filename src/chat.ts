@@ -10,6 +10,9 @@ export function subscribeChatInvite(opts: {
   const { relay, privateKey } = opts;
   const publicKey = ensurePublicKey(privateKey);
 
+  // A set of unique chat ids we're already in
+  const chats = new Set<string>();
+
   const sub = relay.sub([
     {
       kinds: [Kind.Text],
@@ -30,7 +33,21 @@ export function subscribeChatInvite(opts: {
 
     const eventRef = parseReferences(event).find((ref) => ref.event);
     if (!eventRef) return;
-    const eventPointer = eventRef.event!;
+    const chat = eventRef.event!.id;
+
+    // Decline the invitation if we're already in the chat
+    if (chats.has(chat)) {
+      publishEvent(
+        relay,
+        createReplyEvent(privateKey, event, relay, {
+          content: "I'm already in!",
+        }),
+      );
+      return;
+    }
+
+    // Add the chat to the list of chats we're in
+    chats.add(chat);
 
     // Reply to the invitation
     publishEvent(
@@ -45,12 +62,12 @@ export function subscribeChatInvite(opts: {
       relay,
       createEvent(privateKey, {
         kind: Kind.ChannelMessage,
-        tags: [["e", eventPointer.id, relay.url, "root"]],
+        tags: [["e", chat, relay.url, "root"]],
         content: "Hello, thank you for the invitation!",
       }),
     );
 
-    subscribeChat(relay, eventPointer.id);
+    subscribeChat(relay, chat);
   });
 
   return sub;
