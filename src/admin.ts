@@ -1,35 +1,36 @@
 import { distinct } from "https://deno.land/std@0.185.0/collections/distinct.ts";
-import { Kind, SimplePool } from "npm:nostr-tools";
+import { Kind, Relay } from "npm:nostr-tools";
 import { createEvent, now } from "./utils.ts";
-import { ensurePublicKey, PrivateKey } from "./keys.ts";
+import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
 
-export function subscribe(opts: {
+export function subscribeAdmin(opts: {
+  admin: PublicKey;
+  relay: Relay;
   privateKey: PrivateKey;
-  pool: SimplePool;
-  relays: string[];
-  admins: string[];
 }) {
-  const publicKey = ensurePublicKey(opts.privateKey);
+  const { admin, relay, privateKey } = opts;
+  const publicKey = ensurePublicKey(privateKey);
 
-  const sub = opts.pool.sub(opts.relays, [
+  const sub = relay.sub([
     {
       kinds: [Kind.Text],
-      authors: opts.admins,
+      authors: [admin],
       "#p": [publicKey],
       since: now(),
     },
   ]);
+  console.log(`subscribed to ${relay.url} for admin messages`);
 
   // Reply to admin messages
   sub.on("event", (event) => {
-    console.log(event);
+    console.log(`recieved an event from ${relay.url}:`, event);
 
     const ps = distinct([
       ...event.tags.filter((tag) => tag[0] === "p"),
       ["p", event.pubkey],
     ]);
 
-    const ref = ["e", event.id, opts.relays[0]];
+    const ref = ["e", event.id, relay.url];
     const root = event.tags.find((tag) => tag[3] === "root");
     const es = root ? [root, [...ref, "reply"]] : [[...ref, "root"]];
 
@@ -40,14 +41,15 @@ export function subscribe(opts: {
       content: "I'm listening!",
     }, opts.privateKey);
 
-    const pubs = opts.pool.publish(opts.relays, reply);
-    console.log("published a reply", reply);
+    const pubs = relay.publish(reply);
+    console.log(`published a reply to ${relay.url}:`, reply);
 
     pubs.on("ok", () => {
-      console.log("reply has been accepted");
+      console.log(`${relay.url} has accepted a reply`);
     });
+
     pubs.on("failed", (reason: string) => {
-      console.warn("failed to publish an event", reason);
+      console.warn(`failed to publish a reply to ${relay.url}:`, reason);
     });
   });
 }

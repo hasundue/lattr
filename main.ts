@@ -1,7 +1,43 @@
-import { Nostr } from "./src/nostr.ts";
+import { relayInit } from "npm:nostr-tools";
+import {
+  ensurePrivateKey,
+  PublicKey,
+  publishProfile,
+  subscribeAdmin,
+} from "./src/nostr.ts";
 
-const nostr = new Nostr();
+const PROFILE = {
+  name: "Lattr",
+  about: "A game master of lateral thinking puzzles (WIP) " +
+    "github.com/hasundue/lattr",
+  nip05: "lattr@chiezo.dev",
+} as const;
 
-nostr.updateProfile();
+const RELAYS = [
+  "nos.lol",
+] as const;
 
-nostr.subscribeAdmins();
+const privateKey = ensurePrivateKey();
+const relays = RELAYS.map((name) => relayInit(`wss://${name}`));
+
+for (const relay of relays) {
+  await relay.connect();
+  console.log(`connected to ${relay.url}`);
+}
+
+publishProfile({
+  profile: PROFILE,
+  relays,
+  privateKey,
+});
+
+subscribeAdmin({
+  admin:
+    "c04330adadd9508c1ad1c6ede0aed5d922a3657021937e2055a80c1b2865ccf7" as PublicKey, // Chiezo
+  relay: relays[0],
+  privateKey,
+});
+
+for (const relay of relays) {
+  relay.close();
+}
