@@ -52,4 +52,6 @@ export function subscribeAdmin(opts: {
       console.warn(`failed to publish a reply to ${relay.url}:`, reason);
     });
   });
+
+  return sub;
 }

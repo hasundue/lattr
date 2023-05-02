@@ -1,3 +1,4 @@
+import { signal } from "https://deno.land/std@0.185.0/signal/mod.ts";
 import { relayInit } from "npm:nostr-tools";
 import {
   ensurePrivateKey,
@@ -24,6 +25,9 @@ for (const relay of relays) {
   relay.on("connect", () => {
     console.log(`connected to ${relay.url}`);
   });
+  relay.on("disconnect", () => {
+    console.log(`disconnected from ${relay.url}`);
+  });
   relay.on("error", () => {
     console.log(`failed to connect to ${relay.url}`);
   });
@@ -43,6 +47,13 @@ subscribeAdmin({
   privateKey,
 });
 
-for (const relay of relays) {
-  relay.close();
+const signals = signal("SIGINT");
+
+for await (const _ of signals) {
+  console.log("recieved SIGINT, shutting down...");
+  for (const relay of relays) {
+    relay.close();
+  }
+  signals.dispose();
+  Deno.exit(0);
 }
