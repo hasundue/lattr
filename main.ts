@@ -21,8 +21,13 @@ const privateKey = ensurePrivateKey();
 const relays = RELAYS.map((name) => relayInit(`wss://${name}`));
 
 for (const relay of relays) {
+  relay.on("connect", () => {
+    console.log(`connected to ${relay.url}`);
+  });
+  relay.on("error", () => {
+    console.log(`failed to connect to ${relay.url}`);
+  });
   await relay.connect();
-  console.log(`connected to ${relay.url}`);
 }
 
 publishProfile({
