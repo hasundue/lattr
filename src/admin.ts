@@ -1,6 +1,7 @@
 import { Kind, Relay } from "npm:nostr-tools";
-import { createReplyEvent, now } from "./utils.ts";
+import { createReplyEvent } from "./event.ts";
 import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
+import { now } from "./utils.ts";
 
 export function subscribeAdmin(opts: {
   admin: PublicKey;

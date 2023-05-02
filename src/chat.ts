@@ -1,6 +1,7 @@
 import { Kind, parseReferences, Relay, Sub } from "npm:nostr-tools";
-import { createEvent, createReplyEvent, now, publishEvent } from "./utils.ts";
+import { createEvent, createReplyEvent, publishEvent } from "./event.ts";
 import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
+import { now } from "./utils.ts";
 
 export function subscribeChatInvite(opts: {
   relay: Relay;

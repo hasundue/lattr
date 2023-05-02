@@ -1,6 +1,6 @@
 import { Kind, Relay } from "npm:nostr-tools";
 import { PrivateKey } from "./keys.ts";
-import { createEvent, now } from "./utils.ts";
+import { createEvent } from "./event.ts";
 
 export type ProfileInit = {
   name: string;
@@ -17,7 +17,6 @@ export function publishProfile(opts: {
 
   const event = createEvent(privateKey, {
     kind: Kind.Metadata,
-    created_at: now(),
     content: JSON.stringify(profile),
   });
 
