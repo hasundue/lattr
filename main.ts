@@ -4,8 +4,8 @@ import {
   ensurePrivateKey,
   ensurePublicKey,
   publishProfile,
-  subscribeChatInvite,
   resumeChats,
+  subscribeChatInvite,
 } from "./src/nostr.ts";
 const PROFILE = {
   name: "Lattr",
