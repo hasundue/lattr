@@ -2,11 +2,11 @@ import { signal } from "https://deno.land/std@0.185.0/signal/mod.ts";
 import { relayInit } from "npm:nostr-tools";
 import {
   ensurePrivateKey,
-  PublicKey,
+  ensurePublicKey,
   publishProfile,
-  subscribeAdmin,
+  subscribeChatInvite,
+  resumeChats,
 } from "./src/nostr.ts";
-
 const PROFILE = {
   name: "Lattr",
   about: "A game master of lateral thinking puzzles (WIP) " +
@@ -41,9 +41,12 @@ publishProfile({
   privateKey,
 });
 
-subscribeAdmin({
-  admin:
-    "c04330adadd9508c1ad1c6ede0aed5d922a3657021937e2055a80c1b2865ccf7" as PublicKey, // Chiezo
+resumeChats({
+  relay: relays[0],
+  publicKey: ensurePublicKey(privateKey),
+});
+
+subscribeChatInvite({
   relay: relays[0],
   privateKey,
 });
