@@ -1,7 +1,4 @@
 {
-  "imports": {
-    "crypto": "node:crypto"
-  },
   "tasks": {
     "start": "deno run -A main.ts",
     "dev": "deno run --watch main.ts"
