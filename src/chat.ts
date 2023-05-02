@@ -90,27 +90,38 @@ export async function resumeChats(opts: {
 
   const { relay, publicKey } = opts;
 
-  const events = await relay.list([
-    {
-      kinds: [Kind.ChannelMessage],
-      authors: [publicKey],
-      until: now(),
-      limit: 1000,
+  // A readable stream of unique chat ids
+  const stream = new ReadableStream<string>({
+    start(controller) {
+      const chats = new Set<string>();
+
+      const sub = relay.sub([
+        {
+          kinds: [Kind.ChannelMessage],
+          authors: [publicKey],
+          until: now(),
+        },
+      ]);
+
+      sub.on("event", (event) => {
+        const chatRef = event.tags.find((tag) =>
+          tag[0] === "e" && tag[3] === "root"
+        );
+        if (!chatRef) {
+          console.warn("chat message without a chat reference", event);
+          return;
+        }
+        const chat = chatRef[1];
+        if (chats.has(chat)) {
+          return;
+        }
+        chats.add(chat);
+        controller.enqueue(chat);
+      });
     },
-  ]);
-
-  const chats = new Set<string>();
-
-  events.forEach((event) => {
-    const chatRef = event.tags.find((tag) =>
-      tag[0] === "e" && tag[3] === "root"
-    );
-    if (!chatRef) {
-      console.warn("chat message without a chat reference", event);
-      return null;
-    }
-    chats.add(chatRef[1]);
   });
 
-  chats.forEach((chat) => subscribeChat(relay, chat));
+  for await (const chat of stream) {
+    subscribeChat(relay, chat);
+  }
 }
