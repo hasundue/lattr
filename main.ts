@@ -14,6 +14,7 @@ const PROFILE = {
   nip05: "lattr@chiezo.dev",
 } as const;
 
+// We send all events to all relays, but we only subscribe to the first one.
 const RELAYS = [
   "nos.lol",
 ] as const;
