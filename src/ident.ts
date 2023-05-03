@@ -21,7 +21,7 @@ export async function userIsVerified(args: {
       sub.on("event", (event) => {
         controller.enqueue(event);
       });
-      sub.on("eose", () =>{
+      sub.on("eose", () => {
         controller.close();
       });
     },
