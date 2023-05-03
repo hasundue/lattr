@@ -1,5 +1,6 @@
 import { Kind, parseReferences, Relay, Sub } from "npm:nostr-tools";
 import { createEvent, createReplyEvent, publishEvent } from "./event.ts";
+import { userIsVerified } from "./ident.ts";
 import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
 import { now } from "./utils.ts";
 
@@ -8,7 +9,7 @@ export function subscribeChatInvite(opts: {
   privateKey: PrivateKey;
 }): Sub {
   const { relay, privateKey } = opts;
-  const publicKey = ensurePublicKey(privateKey);
+  const pubkey = ensurePublicKey(privateKey);
 
   // A set of unique chat ids we're already in
   const chats = new Set<string>();
@@ -16,24 +17,35 @@ export function subscribeChatInvite(opts: {
   const sub = relay.sub([
     {
       kinds: [Kind.Text],
-      authors: [
-        // Only subscribe to events from Chiezo for now.
-        // TODO: Subscribe to all authorized users with NIP-05.
-        "c04330adadd9508c1ad1c6ede0aed5d922a3657021937e2055a80c1b2865ccf7",
-      ],
-      "#p": [publicKey],
+      "#p": [pubkey],
       since: now(),
     },
   ]);
   console.log(`subscribed to ${relay.url} for chat invitations`);
 
   // Reply to the invitation, join the chat, and subscribe to the chat
-  sub.on("event", (event) => {
+  sub.on("event", async (event) => {
     console.log(`recieved a mention from ${relay.url}:`, event);
 
     const eventRef = parseReferences(event).find((ref) => ref.event);
     if (!eventRef) return;
     const chat = eventRef.event!.id;
+
+    // Decline if the author is not verified with NIP-05
+    const verified = await userIsVerified({
+      pubkey: event.pubkey as PublicKey,
+      relay,
+    });
+    if (!verified) {
+      publishEvent(
+        relay,
+        createReplyEvent(privateKey, event, relay, {
+          content: "I could not find a NIP-05 verified profile for you. " +
+            "I'm afraid that I can only join chats with verified users.",
+        }),
+      );
+      return;
+    }
 
     // Decline the invitation if we're already in the chat
     if (chats.has(chat)) {
