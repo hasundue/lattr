@@ -17,7 +17,7 @@ export interface Puzzle {
 export async function createPuzzle(): Promise<Puzzle> {
   const prompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      "You should always refer the following our conversation history:"
+      "You should always refer the following our conversation history:",
     ),
     new MessagesPlaceholder("history"),
     HumanMessagePromptTemplate.fromTemplate("{input}"),
@@ -37,11 +37,11 @@ export async function createPuzzle(): Promise<Puzzle> {
   }
 
   const problem = await ask(
-    "Create a sentence of 280 characters or less which describes an unusual scenario with a challenging mystery and asks readers to find a story behind it."
+    "Create an unusual and interesting scenario with a challenging mystery in 280 characters or less. The last sentence must be a short question for readers to find a story behind the scenario.",
   );
 
   const answer = await ask(
-    "Create an unexpected but logically-consistent answer to the problem in 140 characters or less.",
+    "Create an unexpected and interesting answer to the question in 140 characters or less.",
   );
 
   return { problem, answer };
