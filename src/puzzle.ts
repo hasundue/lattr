@@ -1,13 +1,19 @@
 import "https://deno.land/std@0.185.0/dotenv/load.ts";
 import { ChatOpenAI } from "npm:langchain/chat_models/openai";
-import { BufferMemory } from "npm:langchain/memory";
 import {
   ChatPromptTemplate,
   HumanMessagePromptTemplate,
-  MessagesPlaceholder,
   SystemMessagePromptTemplate,
 } from "npm:langchain/prompts";
 import { ConversationChain, LLMChain } from "npm:langchain/chains";
+import {
+  ChatCompletionRequestMessage,
+  ChatCompletionResponseMessage,
+  Configuration,
+  CreateChatCompletionRequest,
+  CreateChatCompletionResponse,
+  OpenAIApi,
+} from "npm:openai@3.2.1";
 
 export type Puzzle = {
   problem: string;
@@ -18,44 +24,115 @@ type Input = Record<string, string> & {
   message: string;
 };
 
+const config = new Configuration({
+  apiKey: Deno.env.get("OPENAI_API_KEY"),
+});
+
+const openai = new OpenAIApi(config);
+
+type CompletionRequest = Omit<CreateChatCompletionRequest, "model"> & {
+  model?: string;
+};
+
+function createChatCompletion(request: CompletionRequest) {
+  return openai.createChatCompletion({
+    model: request.model ?? "gpt-3.5-turbo",
+    ...request,
+  });
+}
+
+type CompletionUsage = NonNullable<
+  CreateChatCompletionResponse["usage"]
+>;
+
+const CompletionUsage: {
+  zero: { [key in keyof CompletionUsage]: 0 };
+} = {
+  zero: {
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    total_tokens: 0,
+  },
+};
+
+function reduceCompletionUsages(usages: CompletionUsage[]): CompletionUsage {
+  return usages.reduce(
+    (acc, cur) => ({
+      prompt_tokens: acc.prompt_tokens + cur.prompt_tokens,
+      completion_tokens: acc.completion_tokens + cur.completion_tokens,
+      total_tokens: acc.total_tokens + cur.total_tokens,
+    }),
+    CompletionUsage.zero,
+  );
+}
+
+export type CompletionResult = {
+  usage: CompletionUsage;
+};
+
 async function ask(chain: ConversationChain, input: Input) {
   if (input.request) {
-    console.debug(`(${input.request})`);
+    console.debug(`(${input.request})\n`);
   }
   console.debug(`> ${input.message}\n`);
   return await chain.call(input);
 }
 
-export async function createPuzzle(): Promise<Puzzle> {
+export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
   console.debug("Asking OpenAI for a puzzle...\n");
 
-  const prompt = ChatPromptTemplate.fromPromptMessages([
-    SystemMessagePromptTemplate.fromTemplate(
-      "You should always refer the following our conversation history:",
-    ),
-    new MessagesPlaceholder("history"),
-    HumanMessagePromptTemplate.fromTemplate("{message}"),
-  ]);
+  const messages: Record<string, ChatCompletionRequestMessage[]> = {};
+  const completion: Record<string, ChatCompletionResponseMessage> = {};
+  const usages: NonNullable<CreateChatCompletionResponse["usage"]>[] = [];
 
-  const chain = new ConversationChain({
-    memory: new BufferMemory({ returnMessages: true, memoryKey: "history" }),
-    prompt,
-    llm: new ChatOpenAI({ temperature: 1, modelName: "gpt-3.5-turbo" }),
+  // Ask OpenAI to create a puzzle problem
+  messages.init = [
+    {
+      role: "system",
+      content: "You are a talented puzzle creator.",
+    },
+    {
+      role: "user",
+      content:
+        "Create an unusual and interesting scenario with a challenging mystery in 280 characters or less. The last sentence must be a short question for readers to find a story behind the scenario.",
+    },
+  ];
+  const { data: problem } = await createChatCompletion({
+    messages: messages.init,
+    temperature: 0.9,
   });
+  if (!problem.usage || !problem.choices[0].message) {
+    throw new Error("OpenAI did not return a puzzle.");
+  }
+  completion.problem = problem.choices[0].message;
+  usages.push(problem.usage);
+  console.log("Q:", completion.problem.content, "\n");
 
-  const { response: problem } = await ask(chain, {
-    message:
-      "Create an unusual and interesting scenario with a challenging mystery in 280 characters or less. The last sentence must be a short question for readers to find a story behind the scenario.",
+  // Ask OpenAI to create an answer to the puzzle
+  const { data: answer } = await createChatCompletion({
+    messages: [
+      ...messages.init,
+      completion.problem,
+      {
+        role: "user",
+        content:
+          "Create an unexpected and interesting answer to the question in 140 characters or less.",
+      },
+    ],
+    temperature: 0.1,
   });
-  console.debug(problem);
+  if (!answer.usage || !answer.choices[0].message) {
+    throw new Error("OpenAI did not return an answer to a puzzle.");
+  }
+  completion.answer = answer.choices[0].message;
+  usages.push(answer.usage);
+  console.log("A:", completion.answer.content, "\n");
 
-  const { response: answer } = await ask(chain, {
-    message:
-      "Create an unexpected and interesting answer to the question in 140 characters or less.",
-  });
-  console.debug(answer);
-
-  return { problem, answer };
+  return {
+    usage: reduceCompletionUsages(usages),
+    problem: completion.problem.content,
+    answer: completion.answer.content,
+  };
 }
 
 export async function validateQuestion(

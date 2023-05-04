@@ -19,7 +19,8 @@
   "npm": {
     "specifiers": {
       "langchain": "langchain@0.0.68_zod@3.21.4",
-      "nostr-tools": "nostr-tools@1.10.1"
+      "nostr-tools": "nostr-tools@1.10.1",
+      "openai@3.2.1": "openai@3.2.1"
     },
     "packages": {
       "@anthropic-ai/sdk@0.4.3": {
