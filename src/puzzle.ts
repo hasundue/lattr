@@ -20,14 +20,14 @@ type Input = Record<string, string> & {
 
 async function ask(chain: ConversationChain, input: Input) {
   if (input.request) {
-    console.log(`(${input.request})`);
+    console.debug(`(${input.request})`);
   }
-  console.log(`> ${input.message}\n`);
+  console.debug(`> ${input.message}\n`);
   return await chain.call(input);
 }
 
 export async function createPuzzle(): Promise<Puzzle> {
-  console.log("Asking OpenAI for a puzzle...\n");
+  console.debug("Asking OpenAI for a puzzle...\n");
 
   const prompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
@@ -47,25 +47,28 @@ export async function createPuzzle(): Promise<Puzzle> {
     message:
       "Create an unusual and interesting scenario with a challenging mystery in 280 characters or less. The last sentence must be a short question for readers to find a story behind the scenario.",
   });
-  console.log(problem);
+  console.debug(problem);
 
   const { response: answer } = await ask(chain, {
     message:
       "Create an unexpected and interesting answer to the question in 140 characters or less.",
   });
-  console.log(answer);
+  console.debug(answer);
 
   return { problem, answer };
 }
 
-export async function validateQuestion(puzzle: Puzzle, question: string) {
+export async function validateQuestion(
+  puzzle: Puzzle,
+  question: string,
+): Promise<{ valid: boolean; reply?: string }> {
   const prompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(`
 Suppose you have presented the following puzzle to me:
 
 {problem}
 
-{request} Explain your reasoning in detail as well.
+{request}.
 `),
     HumanMessagePromptTemplate.fromTemplate("{message}"),
   ]);
@@ -75,19 +78,82 @@ Suppose you have presented the following puzzle to me:
     llm: new ChatOpenAI({ temperature: 0, modelName: "gpt-3.5-turbo" }),
   });
 
-  const { text: valid } = await ask(chain, {
+  const { text: related } = await ask(chain, {
     ...puzzle,
     request:
       "Is the following message asking any additional information about a scenario described in the puzzle?",
     message: question,
-  });
-  console.log(valid, "\n");
+  }) as { text: string };
+  console.debug(related, "\n");
 
-//   const response = await ask(chain, {
-//     ...puzzle,
-//     request:
-//       "I am now asking you questions about the puzzle. Discuss if you could answer my question with Yes or No only based on the information found in the problem and answer sentences of the puzzle, showing your thoughts in detail.",
-//     message: question,
-//   });
-//   console.log(response.text, "\n");
+  if (!related.startsWith("Yes")) {
+    const { text: reply } = await ask(chain, {
+      ...puzzle,
+      request:
+        "Create a very short reply to the following message, telling that it is not related to the puzzle.",
+      message: question,
+    }) as { text: string };
+    console.debug(reply, "\n");
+    return { valid: false, reply };
+  }
+
+  const { text: yesno } = await ask(chain, {
+    ...puzzle,
+    request:
+      "Does the following question have a grammatical structure that allows answering it with Yes or No only?",
+    message: question,
+  }) as { text: string };
+  console.debug(yesno, "\n");
+
+  if (!yesno.startsWith("Yes")) {
+    const { text: reply } = await ask(chain, {
+      ...puzzle,
+      request:
+        "Create a very short reply to the following message, telling that it does not have a grammatical structure that allows answering it with Yes or No only",
+      message: question,
+    }) as { text: string };
+    console.debug(reply, "\n");
+    return { valid: false, reply };
+  }
+
+  return { valid: true };
+}
+
+export async function replyToQuestion(
+  puzzle: Puzzle,
+  question: string,
+): Promise<{ yes: boolean; reply: string }> {
+  const prompt = ChatPromptTemplate.fromPromptMessages([
+    SystemMessagePromptTemplate.fromTemplate(`
+Suppose you have presented the following puzzle to me:
+
+{problem}
+
+The answer to the puzzle is:
+
+{answer}
+
+{request}
+`),
+    HumanMessagePromptTemplate.fromTemplate("{message}"),
+  ]);
+
+  const chain = new LLMChain({
+    prompt,
+    llm: new ChatOpenAI({ temperature: 0, modelName: "gpt-3.5-turbo" }),
+  });
+
+  const { text: yesno } = await ask(chain, {
+    ...puzzle,
+    request:
+      "Reply to the following question witn Yes or No only, based on the information in the sentences of the puzzle.",
+    message: question,
+  }) as { text: string };
+  console.debug(yesno, "\n");
+
+  if (!yesno.startsWith("Yes")) {
+    return { yes: false, reply: yesno };
+  }
+
+  return { yes: yesno.startsWith("Yes"), reply: yesno };
 }
