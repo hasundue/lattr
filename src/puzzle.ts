@@ -8,7 +8,6 @@ import {
 import { ConversationChain, LLMChain } from "npm:langchain/chains";
 import {
   ChatCompletionRequestMessage,
-  ChatCompletionResponseMessage,
   Configuration,
   CreateChatCompletionRequest,
   CreateChatCompletionResponse,
@@ -81,12 +80,8 @@ async function ask(chain: ConversationChain, input: Input) {
 export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
   console.debug("Asking OpenAI for a puzzle...\n");
 
-  const messages: Record<string, ChatCompletionRequestMessage[]> = {};
-  const completion: Record<string, ChatCompletionResponseMessage> = {};
-  const usages: NonNullable<CreateChatCompletionResponse["usage"]>[] = [];
-
   // Ask OpenAI to create a puzzle problem
-  messages.init = [
+  const messages_init: ChatCompletionRequestMessage[] = [
     {
       role: "system",
       content: "You are a talented puzzle creator.",
@@ -94,29 +89,29 @@ export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
     {
       role: "user",
       content:
-        "Create an unusual and interesting scenario with a challenging mystery in 280 characters or less. The last sentence must be a short question for readers to find a story behind the scenario.",
+        "Create an unusual and interesting scenario with a challenging mystery in 280 characters or less. The last sentence must be a short question for readers to solve the mystery.",
     },
   ];
   const { data: problem } = await createChatCompletion({
-    messages: messages.init,
+    messages: messages_init,
     temperature: 0.9,
   });
   if (!problem.usage || !problem.choices[0].message) {
     throw new Error("OpenAI did not return a puzzle.");
   }
-  completion.problem = problem.choices[0].message;
-  usages.push(problem.usage);
-  console.log("Q:", completion.problem.content, "\n");
+  const completion_problem = problem.choices[0].message;
+  const usage_problem = problem.usage ?? CompletionUsage.zero;
+  console.log("Q:", completion_problem.content, "\n");
 
   // Ask OpenAI to create an answer to the puzzle
   const { data: answer } = await createChatCompletion({
     messages: [
-      ...messages.init,
-      completion.problem,
+      ...messages_init,
+      completion_problem,
       {
         role: "user",
         content:
-          "Create an unexpected and interesting answer to the question in 140 characters or less.",
+          "Create an unexpected, interesting, and consistent answer to the question in 140 characters or less.",
       },
     ],
     temperature: 0.1,
@@ -124,14 +119,17 @@ export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
   if (!answer.usage || !answer.choices[0].message) {
     throw new Error("OpenAI did not return an answer to a puzzle.");
   }
-  completion.answer = answer.choices[0].message;
-  usages.push(answer.usage);
-  console.log("A:", completion.answer.content, "\n");
+  const completion_answer = answer.choices[0].message;
+  const usage_answer = answer.usage ?? CompletionUsage.zero;
+  console.log("A:", completion_answer.content, "\n");
+
+  const usage_total = reduceCompletionUsages([usage_problem, usage_answer]);
+  console.log("Tokens:", usage_total.total_tokens, "\n");
 
   return {
-    usage: reduceCompletionUsages(usages),
-    problem: completion.problem.content,
-    answer: completion.answer.content,
+    usage: usage_total,
+    problem: completion_problem.content,
+    answer: completion_answer.content,
   };
 }
 
