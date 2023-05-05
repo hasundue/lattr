@@ -34,6 +34,10 @@ type CompletionRequest = Omit<CreateChatCompletionRequest, "model"> & {
   model?: string;
 };
 
+/**
+ * A response from OpenAI's `createChatCompletion` API, but with
+ * `usage` and `choices` properties that are not nullable.
+ */
 type CompletionResponseData =
   & Omit<CreateChatCompletionResponse, "usage" | "choices">
   & {
@@ -49,7 +53,7 @@ async function createChatCompletion(
   request: CompletionRequest,
 ) {
   for (const message of request.messages) {
-    console.debug(">", message.content);
+    console.debug(">", message.content, "\n");
   }
   const { data } = await openai.createChatCompletion({
     model: request.model ?? "gpt-3.5-turbo",
@@ -134,29 +138,33 @@ export async function validateQuestion(
 ): Promise<{ valid: boolean; reply?: string } & CompletionResult> {
   console.debug("Asking GPT-3.5 to validate the puzzle...\n");
 
+  const system_init: ChatCompletionRequestMessage = {
+    role: "system",
+    content: "You are an assistant of an online puzzle session.",
+  };
+
   const system_problem: ChatCompletionRequestMessage = {
     role: "system",
-    content:
-      `You are an assistant of an online puzzle session. Suppose the following puzzle has been presented: "${puzzle.problem}".`,
+    content: `A puzzle has been presented: "${puzzle.problem}".`,
   };
 
   const system_question: ChatCompletionRequestMessage = {
     role: "system",
-    content: `Now, a participant has sent you the following message: "${question}"`,
+    content: `A participant has sent you a message: "${question}"`,
   };
 
-  const user_related: ChatCompletionRequestMessage = {
-    role: "user",
-    content:
-      `Is the message asking any additional information about a scenario or situation described in the puzzle?`,
-  };
-
-  // Ask GPT-3.5 if the question is related to the puzzle.
+  // Ask GPT-4 if the question is related to the puzzle.
   const completion_related = await createChatCompletion({
+    model: "gpt-4",
     messages: [
+      system_init,
       system_problem,
       system_question,
-      user_related,
+      {
+        role: "user",
+        content:
+          "Is the message asking additional information about a scenario or situation described in the puzzle?",
+      },
     ],
     temperature: 0,
   });
@@ -165,6 +173,8 @@ export async function validateQuestion(
   if (!completion_related.choices[0].message.content.startsWith("Yes")) {
     const completion_reply = await createChatCompletion({
       messages: [
+        system_init,
+        system_problem,
         system_question,
         {
           role: "user",
@@ -202,11 +212,13 @@ export async function validateQuestion(
   if (!completion_yesno.choices[0].message.content.startsWith("Yes")) {
     const completion_reply = await createChatCompletion({
       messages: [
+        system_init,
+        system_problem,
         system_question,
         {
           role: "user",
           content:
-            "Create a very short reply to the following message, telling that it is not a Yes/No question.",
+            "Create a very short reply to the message, telling that it is not a Yes/No question.",
         },
       ],
       temperature: 1,

@@ -1,13 +1,16 @@
 import {
   assert,
   assertEquals,
+  assertFalse,
 } from "https://deno.land/std@0.185.0/testing/asserts.ts";
 import { describe, it } from "https://deno.land/std@0.185.0/testing/bdd.ts";
 import { createPuzzle, replyToQuestion, validateQuestion } from "./puzzle.ts";
 
-describe("createPuzzle", async () => {
-  const puzzle = await createPuzzle();
-  assert(puzzle);
+describe("createPuzzle", () => {
+  it("create a random puzzle", async () => {
+    const puzzle = await createPuzzle();
+    assert(puzzle);
+  });
 });
 
 const puzzle = {
@@ -19,26 +22,23 @@ const puzzle = {
 
 describe("validateQuestion", () => {
   describe("should return true for a valid question", () => {
-    it("Is the light a UFO?", async () => {
-      const res = await validateQuestion(puzzle, "Is the light a UFO?");
-      assertEquals(res.valid, true);
+    it("Is he working there?", async (t) => {
+      const res = await validateQuestion(puzzle, t.name);
+      assert(res.valid);
     });
   });
   describe("should return false for an invalid question", () => {
-    it("What is the light?", async () => {
-      const res = await validateQuestion(puzzle, "What is the light?");
-      assertEquals(res.valid, false);
+    it("I don't like you.", async (t) => {
+      const res = await validateQuestion(puzzle, t.name);
+      assertFalse(res.valid);
     });
-    it("What is the name of the town?", async () => {
-      const res = await validateQuestion(
-        puzzle,
-        "What is the name of the town?",
-      );
-      assertEquals(res.valid, false);
+    it("Is America greater than before?", async (t) => {
+      const res = await validateQuestion(puzzle, t.name);
+      assertFalse(res.valid);
     });
-    it("I don't like you.", async () => {
-      const res = await validateQuestion(puzzle, "I don't like you.");
-      assertEquals(res.valid, false);
+    it("What is the job of the man?", async (t) => {
+      const res = await validateQuestion(puzzle, t.name);
+      assertFalse(res.valid);
     });
   });
 });
