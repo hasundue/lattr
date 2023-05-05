@@ -5,20 +5,50 @@ import {
   CreateChatCompletionRequest,
   CreateChatCompletionResponse,
   CreateChatCompletionResponseChoicesInner,
+  CreateModerationResponseResultsInnerCategories,
   OpenAIApi,
 } from "npm:openai@3.2.1";
 import { Brand, Replace, Require } from "./utils.ts";
-
-export type Puzzle = {
-  problem: string;
-  answer: string;
-};
 
 const config = new Configuration({
   apiKey: Deno.env.get("OPENAI_API_KEY"),
 });
 
 const openai = new OpenAIApi(config);
+
+export type ModerationResult = {
+  flagged: boolean;
+  categories: ModerationCategory[];
+};
+
+export type ModerationCategory =
+  keyof CreateModerationResponseResultsInnerCategories;
+
+export async function applyModeration(
+  message: string,
+): Promise<ModerationResult> {
+  const { data } = await openai.createModeration({
+    input: message,
+    model: "text-moderation-latest",
+  });
+  console.debug(data);
+
+  if (data.results.length > 1) {
+    console.warn("OpenAI returned more than one result.");
+  }
+  const result = data.results[0];
+
+  const categories: ModerationCategory[] = [];
+
+  for (const key in result.categories) {
+    const category = key as ModerationCategory;
+    if (result.categories[category]) {
+      categories.push(category);
+    }
+  }
+
+  return { flagged: result.flagged, categories };
+}
 
 type CompletionRequest = Replace<
   CreateChatCompletionRequest,
@@ -134,6 +164,11 @@ export function accumulateCompletionUsages(
 
 export type CompletionResult = {
   usages: CompletionUsage[];
+};
+
+export type Puzzle = {
+  problem: string;
+  answer: string;
 };
 
 export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
