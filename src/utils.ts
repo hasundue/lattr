@@ -1,3 +1,5 @@
+export type Brand<K, T> = K & { __brand: T };
+
 export type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
 export const noop = () => {};

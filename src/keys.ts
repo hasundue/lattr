@@ -1,8 +1,9 @@
 import "https://deno.land/std@0.185.0/dotenv/load.ts";
 import { generatePrivateKey, getPublicKey } from "npm:nostr-tools";
+import { Brand } from "./utils.ts";
 
-export type PrivateKey = string & { __type: "PrivateKey" };
-export type PublicKey = string & { __type: "PublicKey" };
+export type PrivateKey = Brand<string, "private_key">;
+export type PublicKey = Brand<string, "public_key">;
 
 export function ensurePrivateKey(): PrivateKey {
   let privateKey = Deno.env.get("PRIVATE_KEY");
