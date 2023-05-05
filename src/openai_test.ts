@@ -16,13 +16,14 @@ describe("applyModeration", () => {
   describe("should not flag a valid question", () => {
     it("Is he a beekeeper?", async (t) => {
       const res = await applyModeration(t.name);
-      assertFalse(res.flagged);
+      assert(res.approved);
     });
   });
   describe("should flag an invalid question", () => {
     it("I wanna suck your dick", async (t) => {
       const res = await applyModeration(t.name);
-      assert(res.flagged);
+      assertFalse(res.approved);
+      assertEquals(res.categories, ["sexual"]);
     });
   });
 });

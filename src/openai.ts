@@ -16,10 +16,22 @@ const config = new Configuration({
 
 const openai = new OpenAIApi(config);
 
-export type ModerationResult = {
-  flagged: boolean;
-  categories: ModerationCategory[];
-};
+export type ApprovedMessage = Brand<string, "ApprovedMessage">;
+
+type ModerationConcreteResult<T extends boolean> =
+  & {
+    approved: T;
+  }
+  & (T extends true ? {
+      message: ApprovedMessage;
+    }
+    : {
+      categories: ModerationCategory[];
+    });
+
+export type ModerationResult =
+  | ModerationConcreteResult<true>
+  | ModerationConcreteResult<false>;
 
 export type ModerationCategory =
   keyof CreateModerationResponseResultsInnerCategories;
@@ -38,6 +50,13 @@ export async function applyModeration(
   }
   const result = data.results[0];
 
+  if (!result.flagged) {
+    return {
+      approved: true,
+      message: message as ApprovedMessage,
+    };
+  }
+
   const categories: ModerationCategory[] = [];
 
   for (const key in result.categories) {
@@ -47,7 +66,7 @@ export async function applyModeration(
     }
   }
 
-  return { flagged: result.flagged, categories };
+  return { approved: false, categories };
 }
 
 type CompletionRequest = Replace<
