@@ -1,11 +1,4 @@
 import "https://deno.land/std@0.185.0/dotenv/load.ts";
-import { ChatOpenAI } from "npm:langchain/chat_models/openai";
-import {
-  ChatPromptTemplate,
-  HumanMessagePromptTemplate,
-  SystemMessagePromptTemplate,
-} from "npm:langchain/prompts";
-import { ConversationChain, LLMChain } from "npm:langchain/chains";
 import {
   ChatCompletionRequestMessage,
   Configuration,
@@ -14,14 +7,11 @@ import {
   CreateChatCompletionResponseChoicesInner,
   OpenAIApi,
 } from "npm:openai@3.2.1";
+import { Brand } from "./utils.ts";
 
 export type Puzzle = {
   problem: string;
   answer: string;
-};
-
-type Input = Record<string, string> & {
-  message: string;
 };
 
 const config = new Configuration({
@@ -100,16 +90,18 @@ export type CompletionResult = {
   };
 };
 
-async function ask(chain: ConversationChain, input: Input) {
-  if (input.request) {
-    console.debug(`(${input.request})\n`);
-  }
-  console.debug(`> ${input.message}\n`);
-  return await chain.call(input);
+export function printCompletionUsage(usage: CompletionResult["usage"]) {
+  console.log(
+    "Tokens:",
+    usage.gpt3.total_tokens,
+    "(GPT-3.5),",
+    usage.gpt4.total_tokens,
+    "(GPT-4)\n",
+  );
 }
 
 export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
-  console.debug("Asking GPT-4 for a puzzle...\n");
+  console.log("Asking GPT-4 for a puzzle...\n");
 
   const data = await createChatCompletion({
     model: "gpt-4",
@@ -132,11 +124,30 @@ export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
   return { ...puzzle, usage: { gpt3: CompletionUsage.zero, gpt4: data.usage } };
 }
 
+export type ValidQuestion = Brand<string, "ValidQuestion">;
+
+type ValidateQuestionConcreteResult<T extends boolean> =
+  & {
+    valid: T;
+  }
+  & (T extends true ? {
+      question: ValidQuestion;
+    }
+    : {
+      reason: "not-related" | "not-yesno";
+      reply: string;
+    })
+  & CompletionResult;
+
+export type ValidateQuestionResult =
+  | ValidateQuestionConcreteResult<true>
+  | ValidateQuestionConcreteResult<false>;
+
 export async function validateQuestion(
   puzzle: Puzzle,
   question: string,
-): Promise<{ valid: boolean; reply?: string } & CompletionResult> {
-  console.debug("Asking GPT-3.5 to validate the puzzle...\n");
+): Promise<ValidateQuestionResult> {
+  console.log("Asking GPT-3.5 to validate the puzzle...\n");
 
   const system_init: ChatCompletionRequestMessage = {
     role: "system",
@@ -182,16 +193,17 @@ export async function validateQuestion(
             "Create a very short reply to the message, telling that it is not related to the puzzle.",
         },
       ],
-      temperature: 1,
+      temperature: 0.8,
     });
-    const usage = reduceCompletionUsages([
-      completion_related.usage,
-      completion_reply.usage,
-    ]);
+    const usage = {
+      gpt3: completion_reply.usage,
+      gpt4: completion_related.usage,
+    };
     return {
       valid: false,
+      reason: "not-related",
       reply: completion_reply.choices[0].message.content,
-      usage: { gpt3: usage, gpt4: CompletionUsage.zero },
+      usage,
     };
   }
 
@@ -208,7 +220,6 @@ export async function validateQuestion(
     temperature: 0,
   });
 
-  // If not, create a reply saying that the question is not a Yes/No question.
   if (!completion_yesno.choices[0].message.content.startsWith("Yes")) {
     const completion_reply = await createChatCompletion({
       messages: [
@@ -221,69 +232,126 @@ export async function validateQuestion(
             "Create a very short reply to the message, telling that it is not a Yes/No question.",
         },
       ],
-      temperature: 1,
+      temperature: 0.8,
     });
-    const usage = reduceCompletionUsages([
-      completion_related.usage,
-      completion_yesno.usage,
-      completion_reply.usage,
-    ]);
+    const usage = {
+      gpt3: reduceCompletionUsages([
+        completion_yesno.usage,
+        completion_reply.usage,
+      ]),
+      gpt4: completion_related.usage,
+    };
     return {
       valid: false,
+      reason: "not-yesno",
       reply: completion_reply.choices[0].message.content,
-      usage: { gpt3: usage, gpt4: CompletionUsage.zero },
+      usage,
     };
   }
 
-  const usage = reduceCompletionUsages([
-    completion_related.usage,
-    completion_yesno.usage,
-  ]);
-
-  console.debug("The question is valid.\n");
-  console.debug("Tokens:", usage.total_tokens, "\n");
-
-  return {
-    valid: true,
-    usage: { gpt3: usage, gpt4: CompletionUsage.zero },
+  const usage = {
+    gpt3: reduceCompletionUsages([
+      completion_related.usage,
+      completion_yesno.usage,
+    ]),
+    gpt4: completion_related.usage,
   };
+
+  return { valid: true, question: question as ValidQuestion, usage };
 }
+
+export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
+
+export type ReplyToQuestionResult = {
+  yes: boolean;
+  reply: ReplyToQuestion;
+  solved: boolean;
+} & CompletionResult;
 
 export async function replyToQuestion(
   puzzle: Puzzle,
-  question: string,
-): Promise<{ yes: boolean; reply: string }> {
-  const prompt = ChatPromptTemplate.fromPromptMessages([
-    SystemMessagePromptTemplate.fromTemplate(`
-Suppose you have presented the following puzzle to me:
+  question: ValidQuestion,
+): Promise<ReplyToQuestionResult> {
+  console.log("Asking ChatGPT to reply to the question...\n");
 
-{problem}
+  const system_init: ChatCompletionRequestMessage = {
+    role: "system",
+    content: "You are an assistant of an online puzzle session.",
+  };
 
-The answer to the puzzle is:
+  const system_problem: ChatCompletionRequestMessage = {
+    role: "system",
+    content: `A puzzle has been presented: "${puzzle.problem}".`,
+  };
 
-{answer}
+  const system_answer: ChatCompletionRequestMessage = {
+    role: "system",
+    content:
+      `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants yet.`,
+  };
 
-{request}
-`),
-    HumanMessagePromptTemplate.fromTemplate("{message}"),
-  ]);
+  const system_question: ChatCompletionRequestMessage = {
+    role: "system",
+    content: `A participant has sent you a question: "${question}"`,
+  };
 
-  const chain = new LLMChain({
-    prompt,
-    llm: new ChatOpenAI({ temperature: 0, modelName: "gpt-3.5-turbo" }),
+  const completion_reply = await createChatCompletion({
+    model: "gpt-4",
+    messages: [
+      system_init,
+      system_problem,
+      system_answer,
+      system_question,
+      {
+        role: "user",
+        content:
+          "Create a Yes/No reply to the question. Answer in excitement if the question is critical.",
+      },
+    ],
+    temperature: 0,
   });
 
-  const { text: yesno } = await ask(chain, {
-    ...puzzle,
-    request:
-      "Reply to the following question witn Yes or No only, based on the information in the sentences of the puzzle.",
-    message: question,
-  }) as { text: string };
-  console.debug(yesno, "\n");
+  const reply = completion_reply.choices[0].message.content;
+  const yes = reply.startsWith("Yes");
 
-  if (!yesno.startsWith("Yes")) {
-    return { yes: false, reply: yesno };
+  if (!yes) {
+    return {
+      yes,
+      reply: reply as ReplyToQuestion,
+      solved: false,
+      usage: {
+        gpt3: CompletionUsage.zero,
+        gpt4: completion_reply.usage,
+      },
+    };
   }
 
-  return { yes: yesno.startsWith("Yes"), reply: yesno };
+  const completion_solved = await createChatCompletion({
+    model: "gpt-3.5-turbo",
+    messages: [
+      system_init,
+      system_problem,
+      system_answer,
+      system_question,
+      {
+        role: "system",
+        content: `You answered: "${reply}"`,
+      },
+      {
+        role: "user",
+        content: "Is the puzzle solved in the conversation?",
+      },
+    ],
+    temperature: 0,
+  });
+
+  return {
+    yes,
+    reply: reply as ReplyToQuestion,
+    solved: completion_solved.choices[0].message.content.startsWith("Yes"),
+    usage: {
+      gpt3: completion_solved.usage,
+      gpt4: completion_reply.usage,
+    },
+  };
 }

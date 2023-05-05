@@ -1,10 +1,15 @@
+import { describe, it } from "https://deno.land/std@0.185.0/testing/bdd.ts";
 import {
   assert,
   assertEquals,
   assertFalse,
 } from "https://deno.land/std@0.185.0/testing/asserts.ts";
-import { describe, it } from "https://deno.land/std@0.185.0/testing/bdd.ts";
-import { createPuzzle, replyToQuestion, validateQuestion } from "./puzzle.ts";
+import {
+  createPuzzle,
+  replyToQuestion,
+  validateQuestion,
+  ValidQuestion,
+} from "./puzzle.ts";
 
 describe("createPuzzle", () => {
   it("create a random puzzle", async () => {
@@ -31,27 +36,34 @@ describe("validateQuestion", () => {
     it("I don't like you.", async (t) => {
       const res = await validateQuestion(puzzle, t.name);
       assertFalse(res.valid);
+      assertEquals(res.reason, "not-related");
     });
     it("Is America greater than before?", async (t) => {
       const res = await validateQuestion(puzzle, t.name);
       assertFalse(res.valid);
+      assertEquals(res.reason, "not-related");
     });
     it("What is the job of the man?", async (t) => {
       const res = await validateQuestion(puzzle, t.name);
       assertFalse(res.valid);
+      assertEquals(res.reason, "not-yesno");
     });
   });
 });
 
 describe("replyToQuestion", () => {
-  describe("should return a reply for a valid question", () => {
-    it("Is the light a UFO?", async () => {
-      const res = await replyToQuestion(puzzle, "Is the light a UFO?");
-      assertEquals(res.yes, true);
+  describe("should return yes but not solved", () => {
+    it("Does he stay there for his work?", async (t) => {
+      const res = await replyToQuestion(puzzle, t.name as ValidQuestion);
+      assert(res.yes);
+      assertFalse(res.solved);
     });
   });
-  // it("Was it summer there?", async () => {
-  //   const res = await replyToQuestion(puzzle, "Was it summer there?");
-  //   assertEquals(res.yes, false);
-  // });
+  describe("should return yes and solved", () => {
+    it("Is he a beekeeper?", async (t) => {
+      const res = await replyToQuestion(puzzle, t.name as ValidQuestion);
+      assert(res.yes);
+      assert(res.solved);
+    });
+  });
 });
