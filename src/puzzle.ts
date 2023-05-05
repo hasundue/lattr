@@ -78,59 +78,30 @@ async function ask(chain: ConversationChain, input: Input) {
 }
 
 export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
-  console.debug("Asking OpenAI for a puzzle...\n");
+  console.debug("Asking GPT-4 for a puzzle...\n");
 
-  // Ask OpenAI to create a puzzle problem
-  const messages_init: ChatCompletionRequestMessage[] = [
-    {
-      role: "system",
-      content: "You are a talented puzzle creator.",
-    },
-    {
+  const { data } = await createChatCompletion({
+    model: "gpt-4",
+    messages: [{
       role: "user",
       content:
-        "Create an unusual and interesting scenario with a challenging mystery in 280 characters or less. The last sentence must be a short question for readers to solve the mystery.",
-    },
-  ];
-  const { data: problem } = await createChatCompletion({
-    messages: messages_init,
-    temperature: 0.9,
+        "Create an unique and interesting puzzle. The problem should present an unusual situation and a challenging mystery, asking readers to find a story behind it which solves the mystery without logical inconsistency. The last sentence of the problem must be a simple and brief question. Return a JSON object with 'problem' and 'answer' fields, preferably in 280 characters or less each.",
+    }],
+    temperature: 1.0,
   });
-  if (!problem.usage || !problem.choices[0].message) {
+
+  if (!data.choices[0].message) {
     throw new Error("OpenAI did not return a puzzle.");
   }
-  const completion_problem = problem.choices[0].message;
-  const usage_problem = problem.usage ?? CompletionUsage.zero;
-  console.log("Q:", completion_problem.content, "\n");
 
-  // Ask OpenAI to create an answer to the puzzle
-  const { data: answer } = await createChatCompletion({
-    messages: [
-      ...messages_init,
-      completion_problem,
-      {
-        role: "user",
-        content:
-          "Create an unexpected, interesting, and consistent answer to the question in 140 characters or less.",
-      },
-    ],
-    temperature: 0.1,
-  });
-  if (!answer.usage || !answer.choices[0].message) {
-    throw new Error("OpenAI did not return an answer to a puzzle.");
-  }
-  const completion_answer = answer.choices[0].message;
-  const usage_answer = answer.usage ?? CompletionUsage.zero;
-  console.log("A:", completion_answer.content, "\n");
+  const puzzle = JSON.parse(data.choices[0].message.content) as Puzzle;
+  console.log("Q:", puzzle.problem, "\n");
+  console.log("A:", puzzle.answer, "\n");
 
-  const usage_total = reduceCompletionUsages([usage_problem, usage_answer]);
-  console.log("Tokens:", usage_total.total_tokens, "\n");
+  const usage = data.usage ?? CompletionUsage.zero;
+  console.log("Tokens:", usage.total_tokens, "\n");
 
-  return {
-    usage: usage_total,
-    problem: completion_problem.content,
-    answer: completion_answer.content,
-  };
+  return { ...puzzle, usage };
 }
 
 export async function validateQuestion(

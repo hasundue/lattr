@@ -8,9 +8,9 @@ Deno.test("createPuzzle", async () => {
 
 const puzzle = {
   problem:
-    "In a small town, every night, a mysterious light appears in the sky. The people are afraid and intrigued at the same time. The local authorities have been investigating for months, but still, no one can solve the mystery. What could this strange light be, and where does it come from?",
+    "Every day at exactly 3 PM, a man goes to the park and stands by a specific tree for 10 minutes. There are no benches, nor is he doing anything noticeable. No one ever joins him. Why does he do this?",
   answer:
-    "The light turned out to be the product of a group of alien students conducting a science project on Earth. They've been observing the town's reaction, amazed at the fear and curiosity they have stirred.",
+    "The man is a beekeeper who lives nearby. One of his beehives is in that tree, and he visits the park daily to check on the bees. He stands still for 10 minutes to observe the bees without disturbing them and to make sure the hive is healthy and productive.",
 };
 
 describe("validateQuestion", () => {
