@@ -7,7 +7,7 @@ import {
   CreateChatCompletionResponseChoicesInner,
   OpenAIApi,
 } from "npm:openai@3.2.1";
-import { Brand } from "./utils.ts";
+import { Brand, Replace, Require } from "./utils.ts";
 
 export type Puzzle = {
   problem: string;
@@ -20,9 +20,11 @@ const config = new Configuration({
 
 const openai = new OpenAIApi(config);
 
-type CompletionRequest = Omit<CreateChatCompletionRequest, "model"> & {
-  model?: string;
-};
+type CompletionRequest = Replace<
+  CreateChatCompletionRequest,
+  "model",
+  "gpt-3.5" | "gpt-4"
+>;
 
 /**
  * A response from OpenAI's `createChatCompletion` API, but with
@@ -34,73 +36,107 @@ type CompletionResponseData =
     usage: CompletionUsage;
   }
   & {
-    choices: Omit<CreateChatCompletionResponseChoicesInner, "message"> & {
-      message: ChatCompletionRequestMessage;
-    }[];
+    choices: Require<CreateChatCompletionResponseChoicesInner, "message">[];
   };
 
 async function createChatCompletion(
   request: CompletionRequest,
-) {
+): Promise<CompletionResponseData> {
   for (const message of request.messages) {
     console.debug(">", message.content, "\n");
   }
   const { data } = await openai.createChatCompletion({
-    model: request.model ?? "gpt-3.5-turbo",
     ...request,
+    model: request.model === "gpt-4" ? "gpt-4-0314" : "gpt-3.5-turbo-0301",
   });
-  if (!data.choices[0].message) {
-    throw new Error("OpenAI did not return a message.", { cause: data });
+
+  for (const choice of data.choices) {
+    if (!choice.message) {
+      throw new Error("OpenAI did not return a message.", { cause: data });
+    }
+    console.debug(choice.message.content, "\n");
   }
-  console.debug(data.choices[0].message.content, "\n");
+  const choices = data.choices as Require<
+    CreateChatCompletionResponseChoicesInner,
+    "message"
+  >[];
 
-  data.usage = data.usage ?? CompletionUsage.zero;
-  console.debug("Tokens:", data.usage.total_tokens, "\n");
+  const usage: CompletionUsage = {
+    ...(data.usage ?? ChatCompletionUsage.zero),
+    model: request.model,
+  };
+  console.debug("Tokens:", usage.total_tokens, "\n");
 
-  return data as CompletionResponseData;
+  return { ...data, usage, choices };
 }
 
-type CompletionUsage = NonNullable<
+type ChatCompletionUsage = NonNullable<
   CreateChatCompletionResponse["usage"]
 >;
 
-const CompletionUsage = {
+const ChatCompletionUsage: {
+  zero: ChatCompletionUsage;
+} = {
   zero: {
     prompt_tokens: 0,
     completion_tokens: 0,
     total_tokens: 0,
-  } as CompletionUsage,
+  },
 };
 
-function reduceCompletionUsages(usages: CompletionUsage[]): CompletionUsage {
+export type CompletionUsage = ChatCompletionUsage & {
+  model: CompletionRequest["model"];
+};
+
+export const CompletionUsage = {
+  zero: (model: CompletionRequest["model"]): CompletionUsage => ({
+    ...ChatCompletionUsage.zero,
+    model,
+  }),
+};
+
+function accumulateChatCompletionUsages(
+  usages: ChatCompletionUsage[],
+) {
   return usages.reduce(
     (acc, cur) => ({
       prompt_tokens: acc.prompt_tokens + cur.prompt_tokens,
       completion_tokens: acc.completion_tokens + cur.completion_tokens,
       total_tokens: acc.total_tokens + cur.total_tokens,
     }),
-    CompletionUsage.zero,
+    ChatCompletionUsage.zero,
   );
+}
+
+export type AccumulatedCompletionUsage = {
+  "gpt-3.5": CompletionUsage;
+  "gpt-4": CompletionUsage;
+};
+
+export function accumulateCompletionUsages(
+  usages: CompletionUsage[],
+): AccumulatedCompletionUsage {
+  return {
+    "gpt-3.5": {
+      ...accumulateChatCompletionUsages(
+        usages.filter((usage) => usage.model === "gpt-3.5"),
+      ),
+      model: "gpt-3.5",
+    },
+    "gpt-4": {
+      ...accumulateChatCompletionUsages(
+        usages.filter((usage) => usage.model === "gpt-4"),
+      ),
+      model: "gpt-4",
+    },
+  };
 }
 
 export type CompletionResult = {
-  usage: {
-    gpt3: CompletionUsage;
-    gpt4: CompletionUsage;
-  };
+  usages: CompletionUsage[];
 };
 
-export function printCompletionUsage(usage: CompletionResult["usage"]) {
-  console.log(
-    "Tokens:",
-    usage.gpt3.total_tokens,
-    "(GPT-3.5),",
-    usage.gpt4.total_tokens,
-    "(GPT-4)\n",
-  );
-}
-
-export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
+export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
   console.log("Asking GPT-4 for a puzzle...\n");
 
   const data = await createChatCompletion({
@@ -121,7 +157,7 @@ export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
 
   const puzzle = JSON.parse(data.choices[0].message.content) as Puzzle;
 
-  return { ...puzzle, usage: { gpt3: CompletionUsage.zero, gpt4: data.usage } };
+  return { ...puzzle, usages: [data.usage] };
 }
 
 export type ValidQuestion = Brand<string, "ValidQuestion">;
@@ -149,6 +185,8 @@ export async function validateQuestion(
 ): Promise<ValidateQuestionResult> {
   console.log("Asking GPT-3.5 to validate the puzzle...\n");
 
+  const usages: CompletionUsage[] = [];
+
   const system_init: ChatCompletionRequestMessage = {
     role: "system",
     content: "You are an assistant of an online puzzle session.",
@@ -161,7 +199,7 @@ export async function validateQuestion(
 
   const system_question: ChatCompletionRequestMessage = {
     role: "system",
-    content: `A participant has sent you a message: "${question}"`,
+    content: `A participant sent you a message: "${question}"`,
   };
 
   // Ask GPT-4 if the question is related to the puzzle.
@@ -179,10 +217,12 @@ export async function validateQuestion(
     ],
     temperature: 0,
   });
+  usages.push(completion_related.usage);
 
   // If not, create a reply saying that the question is not related to the puzzle.
   if (!completion_related.choices[0].message.content.startsWith("Yes")) {
     const completion_reply = await createChatCompletion({
+      model: "gpt-3.5",
       messages: [
         system_init,
         system_problem,
@@ -195,20 +235,18 @@ export async function validateQuestion(
       ],
       temperature: 0.8,
     });
-    const usage = {
-      gpt3: completion_reply.usage,
-      gpt4: completion_related.usage,
-    };
+    usages.push(completion_reply.usage);
     return {
       valid: false,
       reason: "not-related",
       reply: completion_reply.choices[0].message.content,
-      usage,
+      usages,
     };
   }
 
   // Ask GPT-3.5 if the question is a Yes/No question.
   const completion_yesno = await createChatCompletion({
+    model: "gpt-3.5",
     messages: [
       system_question,
       {
@@ -219,9 +257,11 @@ export async function validateQuestion(
     ],
     temperature: 0,
   });
+  usages.push(completion_yesno.usage);
 
   if (!completion_yesno.choices[0].message.content.startsWith("Yes")) {
     const completion_reply = await createChatCompletion({
+      model: "gpt-3.5",
       messages: [
         system_init,
         system_problem,
@@ -234,30 +274,16 @@ export async function validateQuestion(
       ],
       temperature: 0.8,
     });
-    const usage = {
-      gpt3: reduceCompletionUsages([
-        completion_yesno.usage,
-        completion_reply.usage,
-      ]),
-      gpt4: completion_related.usage,
-    };
+    usages.push(completion_reply.usage);
     return {
       valid: false,
       reason: "not-yesno",
       reply: completion_reply.choices[0].message.content,
-      usage,
+      usages,
     };
   }
 
-  const usage = {
-    gpt3: reduceCompletionUsages([
-      completion_related.usage,
-      completion_yesno.usage,
-    ]),
-    gpt4: completion_related.usage,
-  };
-
-  return { valid: true, question: question as ValidQuestion, usage };
+  return { valid: true, question: question as ValidQuestion, usages };
 }
 
 export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
@@ -273,6 +299,8 @@ export async function replyToQuestion(
   question: ValidQuestion,
 ): Promise<ReplyToQuestionResult> {
   console.log("Asking ChatGPT to reply to the question...\n");
+
+  const usages: CompletionUsage[] = [];
 
   const system_init: ChatCompletionRequestMessage = {
     role: "system",
@@ -292,7 +320,7 @@ export async function replyToQuestion(
 
   const system_question: ChatCompletionRequestMessage = {
     role: "system",
-    content: `A participant has sent you a question: "${question}"`,
+    content: `A participant sent you a question: "${question}"`,
   };
 
   const completion_reply = await createChatCompletion({
@@ -310,6 +338,7 @@ export async function replyToQuestion(
     ],
     temperature: 0,
   });
+  usages.push(completion_reply.usage);
 
   const reply = completion_reply.choices[0].message.content;
   const yes = reply.startsWith("Yes");
@@ -319,15 +348,12 @@ export async function replyToQuestion(
       yes,
       reply: reply as ReplyToQuestion,
       solved: false,
-      usage: {
-        gpt3: CompletionUsage.zero,
-        gpt4: completion_reply.usage,
-      },
+      usages,
     };
   }
 
   const completion_solved = await createChatCompletion({
-    model: "gpt-3.5-turbo",
+    model: "gpt-3.5",
     messages: [
       system_init,
       system_problem,
@@ -344,14 +370,12 @@ export async function replyToQuestion(
     ],
     temperature: 0,
   });
+  usages.push(completion_solved.usage);
 
   return {
     yes,
     reply: reply as ReplyToQuestion,
     solved: completion_solved.choices[0].message.content.startsWith("Yes"),
-    usage: {
-      gpt3: completion_solved.usage,
-      gpt4: completion_reply.usage,
-    },
+    usages,
   };
 }
