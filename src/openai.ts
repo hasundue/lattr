@@ -224,7 +224,7 @@ type ValidateQuestionConcreteResult<T extends boolean> =
       question: ValidQuestion;
     }
     : {
-      reason: "not-related" | "not-yesno";
+      reason: "not related" | "not a yes/no question";
       reply: string;
     })
   & CompletionResult;
@@ -292,7 +292,7 @@ export async function validateQuestion(
     usages.push(completion_reply.usage);
     return {
       valid: false,
-      reason: "not-related",
+      reason: "not related",
       reply: completion_reply.choices[0].message.content,
       usages,
     };
@@ -331,7 +331,7 @@ export async function validateQuestion(
     usages.push(completion_reply.usage);
     return {
       valid: false,
-      reason: "not-yesno",
+      reason: "not a yes/no question",
       reply: completion_reply.choices[0].message.content,
       usages,
     };

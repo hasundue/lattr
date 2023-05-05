@@ -53,17 +53,17 @@ describe("validateQuestion", () => {
     it("I don't like you.", async (t) => {
       const res = await validateQuestion(puzzle, t.name);
       assertFalse(res.valid);
-      assertEquals(res.reason, "not-related");
+      assertEquals(res.reason, "not related");
     });
     it("Is America greater than before?", async (t) => {
       const res = await validateQuestion(puzzle, t.name);
       assertFalse(res.valid);
-      assertEquals(res.reason, "not-related");
+      assertEquals(res.reason, "not related");
     });
     it("What is the job of the man?", async (t) => {
       const res = await validateQuestion(puzzle, t.name);
       assertFalse(res.valid);
-      assertEquals(res.reason, "not-yesno");
+      assertEquals(res.reason, "not a yes/no question");
     });
   });
 });
