@@ -1,9 +1,13 @@
-import { assertEquals } from "https://deno.land/std@0.185.0/testing/asserts.ts";
+import {
+  assert,
+  assertEquals,
+} from "https://deno.land/std@0.185.0/testing/asserts.ts";
 import { describe, it } from "https://deno.land/std@0.185.0/testing/bdd.ts";
 import { createPuzzle, replyToQuestion, validateQuestion } from "./puzzle.ts";
 
-Deno.test("createPuzzle", async () => {
-  await createPuzzle();
+describe("createPuzzle", async () => {
+  const puzzle = await createPuzzle();
+  assert(puzzle);
 });
 
 const puzzle = {

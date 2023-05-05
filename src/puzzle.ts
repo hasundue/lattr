@@ -82,11 +82,17 @@ export async function createPuzzle(): Promise<CompletionResult & Puzzle> {
 
   const { data } = await createChatCompletion({
     model: "gpt-4",
-    messages: [{
-      role: "user",
-      content:
-        "Create an unique and interesting puzzle. The problem should present an unusual situation and a challenging mystery, asking readers to find a story behind it which solves the mystery without logical inconsistency. The last sentence of the problem must be a simple and brief question. Return a JSON object with 'problem' and 'answer' fields, preferably in 280 characters or less each.",
-    }],
+    messages: [
+      {
+        role: "system",
+        content: "You are a talented puzzle creator.",
+      },
+      {
+        role: "user",
+        content:
+          "Create an unique and interesting puzzle. The problem should present an unusual scenario or situation with a challenging mystery, asking you to find a story behind it which solves the mystery elegantly without any logical inconsistency. The last sentence of the problem must be a simple and brief question. Return a JSON object with 'problem' and 'answer' fields, preferably in 280 characters or less each.",
+      },
+    ],
     temperature: 1.0,
   });
 
