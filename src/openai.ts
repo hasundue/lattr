@@ -159,21 +159,21 @@ function accumulateChatCompletionUsages(
 }
 
 export type AccumulatedCompletionUsage = {
-  "gpt-3.5": CompletionUsage;
-  "gpt-4": CompletionUsage;
+  GPT_3_5: CompletionUsage;
+  GPT_4: CompletionUsage;
 };
 
 export function accumulateCompletionUsages(
   usages: CompletionUsage[],
 ): AccumulatedCompletionUsage {
   return {
-    "gpt-3.5": {
+    GPT_3_5: {
       ...accumulateChatCompletionUsages(
         usages.filter((usage) => usage.model === "gpt-3.5"),
       ),
       model: "gpt-3.5",
     },
-    "gpt-4": {
+    GPT_4: {
       ...accumulateChatCompletionUsages(
         usages.filter((usage) => usage.model === "gpt-4"),
       ),

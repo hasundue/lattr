@@ -3,6 +3,7 @@ import { ensurePublicKey, PrivateKey } from "./keys.ts";
 import { NostrProfile } from "./nostr.ts";
 import {
   accumulateCompletionUsages,
+  AccumulatedCompletionUsage,
   applyModeration,
   CompletionUsage,
   createPuzzle,
@@ -13,7 +14,7 @@ import {
   validateQuestion,
 } from "./openai.ts";
 import { createEvent, createReplyEvent, publishEvent } from "./event.ts";
-import { now } from "./utils.ts";
+import { Brand, now } from "./utils.ts";
 
 export async function publishPuzzle(context: {
   relays: Relay[];
@@ -27,7 +28,7 @@ export async function publishPuzzle(context: {
   const event = createEvent(private_key, {
     content: `${intro}
 
-${puzzle.problem}
+Q: ${puzzle.problem}
 
 ${rules}`,
   });
@@ -142,21 +143,53 @@ export async function subscribePuzzleThread(args: {
       usages.push(...result_announce.usages);
 
       const usage = accumulateCompletionUsages(usages);
+      console.log(usage);
+
+      const cost = await calculateCost(usage);
 
       publishEvent(
         relay,
         createReplyEvent(private_key, event_puzzle, relay, {
           content: `${result_announce.intro}
 
-  ${puzzle.answer}
+A: ${puzzle.answer}
 
-  ${result_announce.remark}
-
-  [tokens: ${usage["gpt-3.5"]} (GPT-3.5), ${usage["gpt-4"]} (GPT-4)]`,
+${result_announce.remark}
+(total cost: ⚡${cost})`,
         }),
       );
       sub.unsub();
       return;
     }
   }
+}
+
+const COST_GPT_3_5 = 0.002 as const; // USD / 1K tokens
+const COST_GPT_4_PROMPT = 0.03 as const; // USD / 1K tokens
+const COST_GPT_4_COMPL = 0.06 as const; // USD / 1K tokens
+
+const RATE_BTC_SATS = 100_000_000 as const; // BTC
+
+type SATS = Brand<number, "SATS">;
+
+async function calculateCost(usage: AccumulatedCompletionUsage): Promise<SATS> {
+  const res = await fetch(
+    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+  );
+
+  if (!res.ok) {
+    console.error("Failed to fetch BTC price");
+    return 0 as SATS;
+  }
+
+  const data = await res.json() as { bitcoin: { usd: number } };
+  const rate_btc_usd = data.bitcoin.usd;
+
+  const rate_usd_sats = RATE_BTC_SATS / rate_btc_usd;
+
+  const usd_gpt_3_5 = usage.GPT_3_5.total_tokens / 1000 * COST_GPT_3_5;
+  const usd_gpt_4 = usage.GPT_4.prompt_tokens / 1000 * COST_GPT_4_PROMPT +
+    usage.GPT_4.completion_tokens / 1000 * COST_GPT_4_COMPL;
+
+  return Math.round((usd_gpt_3_5 + usd_gpt_4) * rate_usd_sats) as SATS;
 }
