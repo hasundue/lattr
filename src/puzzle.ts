@@ -67,9 +67,6 @@ export async function subscribePuzzleThread(args: {
         controller.enqueue(event);
       });
     },
-    cancel: () => {
-      sub.unsub();
-    },
   });
 
   for await (const event_recieved of stream) {
@@ -158,6 +155,8 @@ ${result_announce.remark}
 [tokens: ${usage["gpt-3.5"]} (GPT-3.5), ${usage["gpt-4"]} (GPT-4)]`,
       }),
     );
+
+    sub.unsub();
 
     return;
   }
