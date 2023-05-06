@@ -5,8 +5,10 @@ import {
   ensurePublicKey,
   publishProfile,
   resumeChats,
+  subscribeAdmin,
   subscribeChatInvite,
 } from "./src/nostr.ts";
+
 const PROFILE = {
   name: "Lattr",
   about: "A game master of lateral thinking puzzles (WIP) " +
@@ -20,6 +22,8 @@ const RELAYS = [
 ] as const;
 
 const privateKey = ensurePrivateKey();
+const public_key = ensurePublicKey(privateKey);
+
 const relays = RELAYS.map((name) => relayInit(`wss://${name}`));
 
 for (const relay of relays) {
@@ -43,12 +47,18 @@ publishProfile({
 
 resumeChats({
   relay: relays[0],
-  publicKey: ensurePublicKey(privateKey),
+  publicKey: public_key,
 });
 
 subscribeChatInvite({
   relay: relays[0],
   privateKey,
+});
+
+subscribeAdmin({
+  admin: public_key,
+  relays,
+  private_key: privateKey,
 });
 
 const signals = signal("SIGINT");
