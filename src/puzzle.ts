@@ -73,12 +73,13 @@ export async function subscribePuzzleThread(args: {
     // Check if we are handling a targeted event
     if (
       !event_recieved.tags.find((it) =>
-        it[0] === "e" && it[1] === event_puzzle.id && it[3] === "root"
+        it[0] === "e" && it[1] === event_puzzle.id && it[3] === "root" ||
+        it[3] === "reply"
       )
     ) {
       // If not, just ignore the event
-      console.info(
-        "A puzzle event is reffered as a non-root event:",
+      console.warn(
+        "Recieved an event that is not targeted to the puzzle:",
         event_recieved,
       );
       continue;
@@ -129,35 +130,33 @@ export async function subscribePuzzleThread(args: {
       }),
     );
 
-    if (!result_reply.solved) continue;
-
     // If the puzzle has been solved, publish an event to reveal the answer.
     // Return from the root function
-    const result_announce = await createResultAnnounce({
-      winner: nip19.nprofileEncode({
-        pubkey: event_recieved.pubkey,
-        relays: [relay.url],
-      }) as NostrProfile,
-    });
-    usages.push(...result_announce.usages);
+    if (result_reply.solved) {
+      const result_announce = await createResultAnnounce({
+        winner: nip19.nprofileEncode({
+          pubkey: event_recieved.pubkey,
+          relays: [relay.url],
+        }) as NostrProfile,
+      });
+      usages.push(...result_announce.usages);
 
-    const usage = accumulateCompletionUsages(usages);
+      const usage = accumulateCompletionUsages(usages);
 
-    publishEvent(
-      relay,
-      createReplyEvent(private_key, event_puzzle, relay, {
-        content: `${result_announce.intro}
+      publishEvent(
+        relay,
+        createReplyEvent(private_key, event_puzzle, relay, {
+          content: `${result_announce.intro}
 
-${puzzle.answer}
+  ${puzzle.answer}
 
-${result_announce.remark}
+  ${result_announce.remark}
 
-[tokens: ${usage["gpt-3.5"]} (GPT-3.5), ${usage["gpt-4"]} (GPT-4)]`,
-      }),
-    );
-
-    sub.unsub();
-
-    return;
+  [tokens: ${usage["gpt-3.5"]} (GPT-3.5), ${usage["gpt-4"]} (GPT-4)]`,
+        }),
+      );
+      sub.unsub();
+      return;
+    }
   }
 }

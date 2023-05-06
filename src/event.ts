@@ -76,14 +76,14 @@ export function publishEvent(
   relay: Relay,
   event: Event,
 ): void {
-  const pubs = relay.publish(event);
+  const pub = relay.publish(event);
   console.log(`published an event to ${relay.url}:`, event);
 
-  pubs.on("ok", () => {
+  pub.on("ok", () => {
     console.log(`${relay.url} has accepted a reply`);
   });
 
-  pubs.on("failed", (reason: string) => {
+  pub.on("failed", (reason: string) => {
     console.warn(`failed to publish a reply to ${relay.url}:`, reason);
   });
 }
