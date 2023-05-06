@@ -1,11 +1,15 @@
-import { Event, Kind, Relay } from "npm:nostr-tools";
+import { Event, Kind, nip19, Relay } from "npm:nostr-tools";
 import { ensurePublicKey, PrivateKey } from "./keys.ts";
+import { NostrProfile } from "./nostr.ts";
 import {
+  accumulateCompletionUsages,
   applyModeration,
+  CompletionUsage,
   createPuzzle,
   createPuzzleIntro,
+  createReplyToQuestion,
+  createResultAnnounce,
   Puzzle,
-  replyToQuestion,
   validateQuestion,
 } from "./openai.ts";
 import { createEvent, createReplyEvent, publishEvent } from "./event.ts";
@@ -41,49 +45,58 @@ export async function subscribePuzzleThread(args: {
   relay: Relay;
   private_key: PrivateKey;
 }) {
-  const { puzzle, event, relay, private_key } = args;
+  const { puzzle, relay, private_key } = args;
+  const event_puzzle = args.event;
   const public_key = ensurePublicKey(private_key);
+
+  const usages: CompletionUsage[] = [];
 
   const sub = relay.sub([
     {
       kinds: [Kind.Text],
-      "#e": [event.id],
+      "#e": [event_puzzle.id],
       "#p": [public_key],
       since: now(),
     },
   ]);
-  console.log(`Subscribed replies to a puzzle thread ${event.id}`);
+  console.log(`Subscribed replies to a puzzle thread ${event_puzzle.id}`);
 
   const stream = new ReadableStream<Event>({
-    start(controller) {
+    start: (controller) => {
       sub.on("event", (event) => {
         controller.enqueue(event);
       });
     },
+    cancel: () => {
+      sub.unsub();
+    },
   });
 
-  for await (const event_reply of stream) {
+  for await (const event_recieved of stream) {
     // Check if we are handling a targeted event
     if (
-      !event_reply.tags.find((it) =>
-        it[0] === "e" && it[1] === event.id && it[3] === "root"
+      !event_recieved.tags.find((it) =>
+        it[0] === "e" && it[1] === event_puzzle.id && it[3] === "root"
       )
     ) {
       // If not, just ignore the event
-      console.warn(
+      console.info(
         "A puzzle event is reffered as a non-root event:",
-        event_reply,
+        event_recieved,
       );
       continue;
     }
 
     // Check if the message is harmful
     const result_moderation = await applyModeration(
-      event_reply.content,
+      event_recieved.content,
     );
     if (!result_moderation.approved) {
       // If so, just ignore the event (TODO: Reply and report the user)
-      console.warn("Message has been flagged as harmful:", event_reply.content);
+      console.warn(
+        "Message has been flagged as harmful:",
+        event_recieved.content,
+      );
       continue;
     }
 
@@ -92,11 +105,13 @@ export async function subscribePuzzleThread(args: {
       puzzle,
       result_moderation.message,
     );
+    usages.push(...result_validation.usages);
+
     if (!result_validation.valid) {
       // If not, reply with a validation message
       publishEvent(
         relay,
-        createReplyEvent(private_key, event, relay, {
+        createReplyEvent(private_key, event_recieved, relay, {
           content: result_validation.reply,
         }),
       );
@@ -104,18 +119,46 @@ export async function subscribePuzzleThread(args: {
     }
 
     // Create a reply to the question
-    const result_reply = await replyToQuestion(
+    const result_reply = await createReplyToQuestion(
       puzzle,
       result_validation.question,
     );
-    if (!result_reply.solved) {
-      // If the puzzle is not solved, just reply and continue;
-      publishEvent(
-        relay,
-        createReplyEvent(private_key, event, relay, {
-          content: result_reply.reply,
-        }),
-      );
-    }
+    usages.push(...result_reply.usages);
+
+    publishEvent(
+      relay,
+      createReplyEvent(private_key, event_recieved, relay, {
+        content: result_reply.reply,
+      }),
+    );
+
+    if (!result_reply.solved) continue;
+
+    // If the puzzle has been solved, publish an event to reveal the answer.
+    // Return from the root function
+    const result_announce = await createResultAnnounce({
+      winner: nip19.nprofileEncode({
+        pubkey: event_recieved.pubkey,
+        relays: [relay.url],
+      }) as NostrProfile,
+    });
+    usages.push(...result_announce.usages);
+
+    const usage = accumulateCompletionUsages(usages);
+
+    publishEvent(
+      relay,
+      createReplyEvent(private_key, event_puzzle, relay, {
+        content: `${result_announce.intro}
+
+${puzzle.answer}
+
+${result_announce.remark}
+
+[tokens: ${usage["gpt-3.5"]} (GPT-3.5), ${usage["gpt-4"]} (GPT-4)]`,
+      }),
+    );
+
+    return;
   }
 }

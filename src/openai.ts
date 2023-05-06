@@ -9,6 +9,7 @@ import {
   OpenAIApi,
 } from "npm:openai@3.2.1";
 import { Brand, Replace, Require } from "./utils.ts";
+import { NostrProfile } from "./nostr.ts";
 
 const config = new Configuration({
   apiKey: Deno.env.get("OPENAI_API_KEY"),
@@ -402,16 +403,16 @@ export async function validateQuestion(
 
 export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
 
-export type ReplyToQuestionResult = {
+export type CreateReplyToQuestionResult = {
   yes: boolean;
   reply: ReplyToQuestion;
   solved: boolean;
 } & CompletionResult;
 
-export async function replyToQuestion(
+export async function createReplyToQuestion(
   puzzle: Puzzle,
   question: ValidQuestion,
-): Promise<ReplyToQuestionResult> {
+): Promise<CreateReplyToQuestionResult> {
   console.log("Asking ChatGPT to reply to the question...\n");
 
   const usages: CompletionUsage[] = [];
@@ -490,6 +491,64 @@ export async function replyToQuestion(
     yes,
     reply: reply as ReplyToQuestion,
     solved: completion_solved.choices[0].message.content.startsWith("Yes"),
+    usages,
+  };
+}
+
+export type ResultAnnounce = {
+  intro: string;
+  remark: string;
+};
+
+export async function createResultAnnounce(args: {
+  winner: NostrProfile;
+}): Promise<ResultAnnounce & CompletionResult> {
+  const { winner } = args;
+
+  const usages: CompletionUsage[] = [];
+
+  const system_init: ChatCompletionRequestMessage = {
+    role: "system",
+    content: "You are an assistant of an online puzzle session.",
+  };
+
+  const system_solver: ChatCompletionRequestMessage = {
+    role: "system",
+    content: `A participant ${winner} solved a puzzle.`,
+  };
+
+  const completion_intro = await createChatCompletion({
+    model: "gpt-3.5",
+    messages: [
+      system_init,
+      system_solver,
+      {
+        role: "user",
+        content:
+          "Create a brief sentence to announce who solved the puzzle, followed by an introduction for the answer, in 70 characters or less. For example, 'Congraturation to xxxxxx for solving the puzzle! Here is the answer:'",
+      },
+    ],
+    temperature: 1,
+  });
+  usages.push(completion_intro.usage);
+
+  const completion_remark = await createChatCompletion({
+    model: "gpt-3.5",
+    messages: [
+      system_init,
+      {
+        role: "user",
+        content:
+          "Create a message saying thank-you to participants and asking them to wait you charging yourself for the next puzzle, in 70 characters",
+      },
+    ],
+    temperature: 1,
+  });
+  usages.push(completion_remark.usage);
+
+  return {
+    intro: completion_intro.choices[0].message.content,
+    remark: completion_remark.choices[0].message.content,
     usages,
   };
 }

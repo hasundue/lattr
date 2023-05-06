@@ -4,11 +4,13 @@ import {
   assertEquals,
   assertFalse,
 } from "https://deno.land/std@0.185.0/testing/asserts.ts";
+import { NostrProfile } from "./nostr.ts";
 import {
   ApprovedMessage,
   createPuzzle,
   createPuzzleIntro,
-  replyToQuestion,
+  createReplyToQuestion,
+  createResultAnnounce,
   validateQuestion,
   ValidQuestion,
 } from "./openai.ts";
@@ -64,16 +66,25 @@ describe("validateQuestion", () => {
 describe("replyToQuestion", () => {
   describe("should return yes but not solved", () => {
     it("Does he stay there for his work?", async (t) => {
-      const res = await replyToQuestion(puzzle, t.name as ValidQuestion);
+      const res = await createReplyToQuestion(puzzle, t.name as ValidQuestion);
       assert(res.yes);
       assertFalse(res.solved);
     });
   });
   describe("should return yes and solved", () => {
     it("Is he a beekeeper?", async (t) => {
-      const res = await replyToQuestion(puzzle, t.name as ValidQuestion);
+      const res = await createReplyToQuestion(puzzle, t.name as ValidQuestion);
       assert(res.yes);
       assert(res.solved);
     });
+  });
+});
+
+describe("createResultAnnounce", () => {
+  it("create announcement of a result", async () => {
+    const res = await createResultAnnounce({
+      winner: "nprofile1xxxxxxxxxxx" as NostrProfile,
+    });
+    assert(res);
   });
 });
