@@ -13,6 +13,7 @@ const PROFILE = {
   name: "Lattr",
   about: "A game master of lateral thinking puzzles (WIP) " +
     "github.com/hasundue/lattr",
+  picture: "https://chiezo.dev/images/lattr.jpg",
   nip05: "lattr@chiezo.dev",
 } as const;
 
