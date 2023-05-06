@@ -23,11 +23,11 @@ export function subscribeAdmin(opts: {
   console.log(`subscribed to ${relay.url} for admin messages`);
 
   // Reply to admin messages
-  sub.on("event", (event) => {
+  sub.on("event", async (event) => {
     console.log(`recieved an admin message from ${relay.url}:`, event);
 
     if (new RegExp("next puzzle", "i").test(event.content)) {
-      publishPuzzle({ relays, private_key });
+      await publishPuzzle({ relays, private_key });
     }
   });
 

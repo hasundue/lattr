@@ -36,7 +36,7 @@ ${rules}`,
     publishEvent(relay, event);
   }
 
-  subscribePuzzleThread({ puzzle, event, relay: relays[0], private_key });
+  await subscribePuzzleThread({ puzzle, event, relay: relays[0], private_key });
 }
 
 export async function subscribePuzzleThread(args: {
