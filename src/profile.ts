@@ -5,7 +5,9 @@ import { createEvent } from "./event.ts";
 export type ProfileInit = {
   name: string;
   about: string;
+  picture: string;
   nip05: string;
+  lud16: string;
 };
 
 export function publishProfile(opts: {

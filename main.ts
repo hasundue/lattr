@@ -15,6 +15,7 @@ const PROFILE = {
     "github.com/hasundue/lattr",
   picture: "https://chiezo.dev/images/lattr.jpg",
   nip05: "lattr@chiezo.dev",
+  lud16: "patchedisrael58@walletofsatoshi.com",
 } as const;
 
 // We send all events to all relays, but we only subscribe to the first one.
