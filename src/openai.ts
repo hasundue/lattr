@@ -214,7 +214,7 @@ export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
   return { ...puzzle, usages: [data.usage] };
 }
 
-export async function createPuzzleIntroduction(): Promise<
+export async function createPuzzleIntro(): Promise<
   { intro: string; rules: string } & CompletionResult
 > {
   console.log("Asking GPT-3.5 to create an introduction...\n");
@@ -274,7 +274,7 @@ export async function createPuzzleIntroduction(): Promise<
   };
 }
 
-export type ValidQuestion = Brand<ApprovedMessage, "ValidQuestion">;
+export type ValidQuestion = Brand<string, "ApprovedMessage" | "ValidQuestion">;
 
 type ValidateQuestionConcreteResult<T extends boolean> =
   & {

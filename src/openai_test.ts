@@ -7,7 +7,7 @@ import {
 import {
   ApprovedMessage,
   createPuzzle,
-  createPuzzleIntroduction,
+  createPuzzleIntro,
   replyToQuestion,
   validateQuestion,
   ValidQuestion,
@@ -29,7 +29,7 @@ const puzzle = {
 
 describe("createPuzzleIntroduction", () => {
   it("create a random introduction of a puzzle", async () => {
-    const res = await createPuzzleIntroduction();
+    const res = await createPuzzleIntro();
     assert(res.intro);
     assert(res.rules);
   });
