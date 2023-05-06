@@ -214,7 +214,67 @@ export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
   return { ...puzzle, usages: [data.usage] };
 }
 
-export type ValidQuestion = Brand<string, "ValidQuestion">;
+export async function createPuzzleIntroduction(): Promise<
+  { intro: string; rules: string } & CompletionResult
+> {
+  console.log("Asking GPT-3.5 to create an introduction...\n");
+
+  const usages: CompletionUsage[] = [];
+
+  const system_init: ChatCompletionRequestMessage = {
+    role: "system",
+    content:
+      "You are an assistant of an online session of lateral thinking puzzles.",
+  };
+
+  const user_intro: ChatCompletionRequestMessage = {
+    role: "user",
+    content:
+      `Create a brief introduction for the puzzle, started with some greeting words, in 70 characters or less. For example: "Hello everyone! Here is my new puzzle:"`,
+  };
+
+  const completion_intro = await createChatCompletion({
+    model: "gpt-3.5",
+    messages: [
+      system_init,
+      user_intro,
+    ],
+    temperature: 1,
+  });
+  usages.push(completion_intro.usage);
+  const assistant_intro = completion_intro.choices[0].message;
+
+  const system_rules: ChatCompletionRequestMessage = {
+    role: "system",
+    content:
+      `Participants may ask you Yes/No questions to propose an answer, or gather additional information about the puzzle.`,
+  };
+
+  const completion_rules = await createChatCompletion({
+    model: "gpt-3.5",
+    messages: [
+      system_init,
+      user_intro,
+      assistant_intro,
+      system_rules,
+      {
+        role: "user",
+        content:
+          `Create a brief explanation of the rule in 140 characters or less. For example, "Ask me Yes/No questions to show your idea or to get additional information about the puzzle. Good luck!"`,
+      },
+    ],
+    temperature: 1,
+  });
+  usages.push(completion_rules.usage);
+
+  return {
+    intro: assistant_intro.content,
+    rules: completion_rules.choices[0].message.content,
+    usages,
+  };
+}
+
+export type ValidQuestion = Brand<ApprovedMessage, "ValidQuestion">;
 
 type ValidateQuestionConcreteResult<T extends boolean> =
   & {
@@ -235,7 +295,7 @@ export type ValidateQuestionResult =
 
 export async function validateQuestion(
   puzzle: Puzzle,
-  question: string,
+  question: ApprovedMessage,
 ): Promise<ValidateQuestionResult> {
   console.log("Asking GPT-3.5 to validate the puzzle...\n");
 
