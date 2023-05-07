@@ -110,6 +110,11 @@ async function createChatCompletion(
     CreateChatCompletionResponseChoicesInner,
     "message"
   >[];
+  // Strip '"' from the content of the message
+  const content = choices[0].message.content;
+  if (content[0] === "\"" && content[content.length - 1] === "\"") {
+    choices[0].message.content = content.slice(1, -1);
+  }
 
   const usage: CompletionUsage = {
     ...(data.usage ?? ChatCompletionUsage.zero),
