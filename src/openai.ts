@@ -104,16 +104,18 @@ async function createChatCompletion(
     if (!choice.message) {
       throw new Error("OpenAI did not return a message.", { cause: data });
     }
-    console.debug(choice.message.content, "\n");
   }
   const choices = data.choices as Require<
     CreateChatCompletionResponseChoicesInner,
     "message"
   >[];
   // Strip '"' from the content of the message
-  const content = choices[0].message.content;
-  if (content[0] === "\"" && content[content.length - 1] === "\"") {
-    choices[0].message.content = content.slice(1, -1);
+  for (let i = 0; i < choices.length; i++) {
+    const content = choices[i].message.content;
+    if (content[0] === '"') {
+      choices[i].message.content = content.slice(1, -1);
+    }
+    console.debug(choices[i].message.content, "\n");
   }
 
   const usage: CompletionUsage = {
@@ -229,13 +231,13 @@ export async function createPuzzleIntro(): Promise<
 
   const system_init: ChatCompletionRequestMessage = {
     role: "system",
-    content: "You are posting a puzzle you created to a SNS.",
+    content: "You are sharing a puzzle you created with your friends.",
   };
 
   const user_intro: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Create a brief introduction for the puzzle, started with some greeting words, in 70 characters or less. Do not include any contents of a puzzle.`,
+      `Create a brief introduction for the puzzle, started with some greeting words, in 70 characters or less. Do not include any contents of a puzzle.`
   };
 
   const completion_intro = await createChatCompletion({
@@ -252,7 +254,7 @@ export async function createPuzzleIntro(): Promise<
   const system_rules: ChatCompletionRequestMessage = {
     role: "system",
     content:
-      `Participants may ask you Yes/No questions to propose an answer, or gather additional information about the puzzle. Do not include any contents of a puzzle.`,
+      `Rule: People may ask you Yes/No questions to gather additional information about the puzzle.`,
   };
 
   const completion_rules = await createChatCompletion({
@@ -265,7 +267,7 @@ export async function createPuzzleIntro(): Promise<
       {
         role: "user",
         content:
-          `Create a brief explanation of the rule in 140 characters or less. Example: Ask me Yes/No questions to show your idea or to get additional information about the puzzle. Good luck!`,
+          `Explain the rule above briefly and encourage readers in 140 characters or less, without hashtags or emojis. Do not include contents of a puzzle.`,
       },
     ],
     temperature: 1,
