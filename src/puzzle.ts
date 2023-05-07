@@ -13,7 +13,9 @@ import {
   createReplyToQuestion,
   createResultAnnounce,
   Puzzle,
+  ReplyToQuestion,
   validateQuestion,
+  ValidQuestion,
 } from "./openai.ts";
 import { createEvent, createReplyEvent, publishEvent } from "./event.ts";
 import { Brand, now } from "./utils.ts";
@@ -120,11 +122,38 @@ export async function subscribePuzzleThread(args: {
       continue;
     }
 
-    // Create a reply to the question
-    const result_reply = await createReplyToQuestion(
-      puzzle,
-      result_validation.question,
+    // Retrieve the context if any
+    const context: Chat[] = [];
+
+    const parent_tag = event_recieved.tags.find((it) =>
+      it[0] === "e" && it[1] !== event_puzzle.id && it[3] === "reply"
     );
+    const parent = parent_tag
+      ? await relay.get({ ids: [parent_tag[1]] })
+      : null;
+
+    const grandparent_tag = parent?.tags.find((it) =>
+      it[0] === "e" && it[1] !== event_puzzle.id && it[3] === "reply"
+    );
+    const grandparent = grandparent_tag
+      ? await relay.get({
+        ids: [grandparent_tag[1]],
+      })
+      : null;
+
+    if (parent && grandparent) {
+      context.push({
+        question: grandparent.content as ValidQuestion,
+        reply: parent.content as ReplyToQuestion,
+      });
+    }
+
+    // Create a reply to the question
+    const result_reply = await createReplyToQuestion({
+      puzzle,
+      question: result_validation.question,
+      context,
+    });
     if (result_reply.yes) {
       chats_yes.push({
         question: result_validation.question,

@@ -66,16 +66,35 @@ describe("validateQuestion", () => {
 });
 
 describe("replyToQuestion", () => {
-  describe("should return Yes", () => {
-    it("Does he stay there for his work?", async (t) => {
-      const res = await createReplyToQuestion(puzzle, t.name as ValidQuestion);
-      assert(res.yes);
+  describe("should not return Yes", () => {
+    it("Is he a teacher?", async (t) => {
+      const res = await createReplyToQuestion({
+        puzzle,
+        question: t.name as ValidQuestion,
+      });
+      assertFalse(res.yes);
     });
   });
-  describe("should return No", () => {
-    it("Is he a teacher?", async (t) => {
-      const res = await createReplyToQuestion(puzzle, t.name as ValidQuestion);
-      assertFalse(res.yes);
+  describe("should return Yes", () => {
+    it("Does he stay there for his work?", async (t) => {
+      const res = await createReplyToQuestion({
+        puzzle,
+        question: t.name as ValidQuestion,
+      });
+      assert(res.yes);
+    });
+    it("Are they bees?", async (t) => {
+      const res = await createReplyToQuestion({
+        puzzle,
+        question: t.name as ValidQuestion,
+        context: [
+          {
+            question: "Does he watch creatures?" as ValidQuestion,
+            reply: "Yes!" as ReplyToQuestion,
+          },
+        ],
+      });
+      assert(res.yes);
     });
   });
 });

@@ -408,12 +408,14 @@ export type CreateReplyToQuestionResult = {
   reply: ReplyToQuestion;
 } & CompletionResult;
 
-export async function createReplyToQuestion(
-  puzzle: Puzzle,
-  question: ValidQuestion,
-): Promise<CreateReplyToQuestionResult> {
+export async function createReplyToQuestion(args: {
+  puzzle: Puzzle;
+  question: ValidQuestion;
+  context?: Chat[];
+}): Promise<CreateReplyToQuestionResult> {
   console.log("Asking ChatGPT to reply to the question...\n");
 
+  const { puzzle, question, context } = args;
   const usages: CompletionUsage[] = [];
 
   const system_init: ChatCompletionRequestMessage = {
@@ -429,8 +431,19 @@ export async function createReplyToQuestion(
   const system_answer: ChatCompletionRequestMessage = {
     role: "system",
     content:
-      `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants yet.`,
+      `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants.`,
   };
+
+  const system_context = context?.map((chat): ChatCompletionRequestMessage[] => [
+    {
+      role: "system",
+      content: `A participant sent you a question: "${chat.question}"`,
+    },
+    {
+      role: "system",
+      content: `You replied: "${chat.reply}"`,
+    },
+  ]).flat() ?? [];
 
   const system_question: ChatCompletionRequestMessage = {
     role: "system",
@@ -443,6 +456,7 @@ export async function createReplyToQuestion(
       system_init,
       system_problem,
       system_answer,
+      ...system_context,
       system_question,
       {
         role: "user",
@@ -487,7 +501,8 @@ export async function checkPuzzleSolved(args: {
 
   const system_answer: ChatCompletionRequestMessage = {
     role: "system",
-    content: `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants yet.`,
+    content:
+      `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants yet.`,
   };
 
   const system_chats = chats.map((chat): ChatCompletionRequestMessage[] => [
