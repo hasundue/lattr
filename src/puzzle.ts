@@ -79,8 +79,7 @@ export async function subscribePuzzleThread(args: {
     // Check if we are handling a targeted event
     if (
       !event_recieved.tags.find((it) =>
-        it[0] === "e" && it[1] === event_puzzle.id && it[3] === "root" ||
-        it[3] === "reply"
+        it[0] === "e" && it[1] === event_puzzle.id
       )
     ) {
       // If not, just ignore the event
