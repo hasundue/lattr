@@ -1,5 +1,5 @@
 import { Event, Kind, nip19, Relay } from "npm:nostr-tools";
-import { ensurePublicKey, PrivateKey } from "./keys.ts";
+import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
 import { NostrProfile } from "./nostr.ts";
 import {
   accumulateCompletionUsages,
@@ -60,6 +60,7 @@ export async function subscribePuzzleThread(args: {
 
   const usages: CompletionUsage[] = [];
   const chats_yes: Chat[] = [];
+  const replied_invalid = new Set<PublicKey>();
   const events_sub = [event_puzzle.id];
 
   const sub = relay.sub([]);
@@ -136,11 +137,16 @@ export async function subscribePuzzleThread(args: {
     );
     usages.push(...result_validation.usages);
 
+    // If not, reply with a validation message
     if (!result_validation.valid) {
-      // If not, reply with a validation message
+      // Ignore if already replied
+      if (replied_invalid.has(event_recieved.pubkey as PublicKey)) {
+        continue;
+      }
       const reply = createReplyEvent(private_key, event_recieved, relay, {
         content: result_validation.reply,
       });
+      replied_invalid.add(event_recieved.pubkey as PublicKey);
       updateSub({ newEvent: reply.id });
       publishEvent(relay, reply);
       continue;
