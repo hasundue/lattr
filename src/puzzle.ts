@@ -56,15 +56,22 @@ export async function subscribePuzzleThread(args: {
 
   const usages: CompletionUsage[] = [];
   const chats_yes: Chat[] = [];
+  const events_sub = [event_puzzle.id];
 
-  const sub = relay.sub([
-    {
+  const sub = relay.sub([]);
+
+  function updateSub(opts?: { newEvent?: string }) {
+    if (opts?.newEvent) {
+      events_sub.push(opts.newEvent);
+    }
+    sub.sub([{
       kinds: [Kind.Text],
-      "#e": [event_puzzle.id],
+      "#e": events_sub,
       "#p": [public_key],
       since: now(),
-    },
-  ]);
+    }], {});
+  }
+  updateSub();
   console.log(`Subscribed replies to a puzzle thread ${event_puzzle.id}`);
 
   const stream = new ReadableStream<Event>({
@@ -127,12 +134,11 @@ export async function subscribePuzzleThread(args: {
 
     if (!result_validation.valid) {
       // If not, reply with a validation message
-      publishEvent(
-        relay,
-        createReplyEvent(private_key, event_recieved, relay, {
-          content: result_validation.reply,
-        }),
-      );
+      const reply = createReplyEvent(private_key, event_recieved, relay, {
+        content: result_validation.reply,
+      });
+      updateSub({ newEvent: reply.id });
+      publishEvent(relay, reply);
       continue;
     }
 
@@ -176,12 +182,11 @@ export async function subscribePuzzleThread(args: {
     }
     usages.push(...result_reply.usages);
 
-    publishEvent(
-      relay,
-      createReplyEvent(private_key, event_recieved, relay, {
-        content: result_reply.reply,
-      }),
-    );
+    const reply = createReplyEvent(private_key, event_recieved, relay, {
+      content: result_reply.reply,
+    });
+    updateSub({ newEvent: reply.id });
+    publishEvent(relay, reply);
 
     // If the puzzle has been solved, publish the answer and return.
     if (
