@@ -325,7 +325,7 @@ export async function validateQuestion(
 
   // Ask GPT-4 if the question is related to the puzzle.
   const completion_related = await createChatCompletion({
-    model: "gpt-4",
+    model: "gpt-3.5",
     messages: [
       system_init,
       system_problem,
@@ -373,7 +373,7 @@ export async function validateQuestion(
       {
         role: "user",
         content:
-          "Is the message a question that allows answering it with Yes or No only? Answer with 'Yes' or 'No'.",
+          "Does the message have a grammatical structure that allows answering it with Yes or No only? Answer with 'Yes' or 'No'.",
       },
     ],
     temperature: 0,
