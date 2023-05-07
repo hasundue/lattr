@@ -44,6 +44,11 @@ ${rules}`,
   await subscribePuzzleThread({ puzzle, event, relay: relays[0], private_key });
 }
 
+const BLACKLIST: PublicKey[] = [
+  // Cyborg
+  "8b928bf75edb4ddffe2800557ffe7e5e2b07c5d5102f97d1955f921585938201" as PublicKey,
+];
+
 export async function subscribePuzzleThread(args: {
   puzzle: Puzzle;
   event: Event;
@@ -105,8 +110,12 @@ export async function subscribePuzzleThread(args: {
   for await (const event_recieved of stream) {
     // Check if we are handling a non-targeted event
     if (
-      event_recieved.pubkey === public_key || // a message from me, or
-      !(await isDirectMention(event_recieved)) // a message to someone else, or
+      // A blacklisted user, or
+      BLACKLIST.includes(event_recieved.pubkey as PublicKey) ||
+      // a message from me, or
+      event_recieved.pubkey === public_key ||
+      // a message to someone else
+      !(await isDirectMention(event_recieved))
     ) {
       // If not, just ignore the event
       console.log("This event is not targeted to me:", event_recieved);
