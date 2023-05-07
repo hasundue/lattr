@@ -78,6 +78,7 @@ export async function subscribePuzzleThread(args: {
   for await (const event_recieved of stream) {
     // Check if we are handling a targeted event
     if (
+      event_recieved.pubkey !== public_key &&
       !event_recieved.tags.find((it) =>
         it[0] === "e" && it[1] === event_puzzle.id
       )
