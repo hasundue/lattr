@@ -2,12 +2,12 @@ import { signal } from "https://deno.land/std@0.185.0/signal/mod.ts";
 import { nip19, relayInit } from "npm:nostr-tools";
 import {
   ensurePrivateKey,
-  ensurePublicKey,
+  // ensurePublicKey,
   PublicKey,
   publishProfile,
-  resumeChats,
+  // resumeChats,
   subscribeAdmin,
-  subscribeChatInvite,
+  // subscribeChatInvite,
 } from "./src/nostr.ts";
 
 // We send all events to all relays, but we only subscribe to the first one.
@@ -18,7 +18,7 @@ const RELAYS = [
 const relays = RELAYS.map((name) => relayInit(`wss://${name}`));
 
 const privateKey = ensurePrivateKey();
-const public_key = ensurePublicKey(privateKey);
+// const public_key = ensurePublicKey(privateKey);
 
 // Chiezo
 const public_key_owner =
@@ -58,15 +58,15 @@ publishProfile({
   privateKey,
 });
 
-resumeChats({
-  relay: relays[0],
-  publicKey: public_key,
-});
+// resumeChats({
+//   relay: relays[0],
+//   publicKey: public_key,
+// });
 
-subscribeChatInvite({
-  relay: relays[0],
-  privateKey,
-});
+// subscribeChatInvite({
+//   relay: relays[0],
+//   privateKey,
+// });
 
 subscribeAdmin({
   admin: public_key_owner,
