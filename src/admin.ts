@@ -20,11 +20,19 @@ export function subscribeAdmin(opts: {
       since: now(),
     },
   ]);
-  console.log(`subscribed to ${relay.url} for admin messages`);
+  console.log(`Subscribed to ${relay.url} for admin messages`);
 
   // Reply to admin messages
   sub.on("event", async (event) => {
     console.log(`recieved an admin message from ${relay.url}:`, event);
+
+    if (
+      event.tags.find((tag) => tag[0] === "e") &&
+      event.tags.find((tag) => tag[0] === "p" && tag[1] !== publicKey)
+    ) {
+      console.log("This seems to be a participant in a puzzle thread");
+      return;
+    }
 
     if (new RegExp("next puzzle", "i").test(event.content)) {
       await publishPuzzle({ relays, private_key });
