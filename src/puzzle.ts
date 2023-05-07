@@ -75,18 +75,30 @@ export async function subscribePuzzleThread(args: {
     },
   });
 
-  for await (const event_recieved of stream) {
-    const parent_tag = event_recieved.tags.find((it) =>
-      it[0] === "e" && it[1] !== event_puzzle.id
-    );
-    const parent = parent_tag
-      ? await relay.get({ ids: [parent_tag[1]] })
-      : null;
+  async function isDirectMention(
+    event: Event,
+  ): Promise<boolean> {
+    for (const tag of event.tags) {
+      if (tag[0] !== "e") {
+        continue;
+      }
+      const parent = await relay.get({ ids: [tag[1]] });
+      if (!parent) {
+        console.warn("Parent event not found:", tag[1]);
+        continue;
+      }
+      if (parent.pubkey !== public_key) {
+        return false;
+      }
+    }
+    return true;
+  }
 
+  for await (const event_recieved of stream) {
     // Check if we are handling a non-targeted event
     if (
       event_recieved.pubkey === public_key || // a message from me, or
-      parent?.pubkey !== public_key // a message to someone else, or
+      !(await isDirectMention(event_recieved)) // a message to someone else, or
     ) {
       // If not, just ignore the event
       console.log("This event is not targeted to me:", event_recieved);
@@ -126,6 +138,13 @@ export async function subscribePuzzleThread(args: {
 
     // Retrieve the context if any
     const context: Chat[] = [];
+
+    const parent_tag = event_recieved.tags.find((it) =>
+      it[0] === "e" && it[1] !== event_puzzle.id
+    );
+    const parent = parent_tag
+      ? await relay.get({ ids: [parent_tag[1]] })
+      : null;
 
     const grandparent_tag = parent?.tags.find((it) =>
       it[0] === "e" && it[1] !== event_puzzle.id && it[3] === "reply"
