@@ -76,18 +76,20 @@ export async function subscribePuzzleThread(args: {
   });
 
   for await (const event_recieved of stream) {
-    // Check if we are handling a targeted event
+    const parent_tag = event_recieved.tags.find((it) =>
+      it[0] === "e" && it[1] !== event_puzzle.id
+    );
+    const parent = parent_tag
+      ? await relay.get({ ids: [parent_tag[1]] })
+      : null;
+
+    // Check if we are handling a non-targeted event
     if (
-      event_recieved.pubkey !== public_key &&
-      !event_recieved.tags.find((it) =>
-        it[0] === "e" && it[1] === event_puzzle.id
-      )
+      event_recieved.pubkey === public_key || // a message from me, or
+      parent?.pubkey !== public_key // a message to someone else, or
     ) {
       // If not, just ignore the event
-      console.warn(
-        "Recieved an event that is not targeted to the puzzle:",
-        event_recieved,
-      );
+      console.log("This event is not targeted to me:", event_recieved);
       continue;
     }
 
@@ -124,13 +126,6 @@ export async function subscribePuzzleThread(args: {
 
     // Retrieve the context if any
     const context: Chat[] = [];
-
-    const parent_tag = event_recieved.tags.find((it) =>
-      it[0] === "e" && it[1] !== event_puzzle.id && it[3] === "reply"
-    );
-    const parent = parent_tag
-      ? await relay.get({ ids: [parent_tag[1]] })
-      : null;
 
     const grandparent_tag = parent?.tags.find((it) =>
       it[0] === "e" && it[1] !== event_puzzle.id && it[3] === "reply"
