@@ -333,7 +333,7 @@ export async function validateQuestion(
       {
         role: "user",
         content:
-          "Is the message proposing an answer or asking additional information about a scenario or situation described in the puzzle?",
+          "Is the message asking additional information about a scenario or situation described in the puzzle? Answer with 'Yes' or 'No'.",
       },
     ],
     temperature: 0,
@@ -373,7 +373,7 @@ export async function validateQuestion(
       {
         role: "user",
         content:
-          "Does the question has a grammatical structure that allows answering it with Yes or No only?",
+          "Is the message a question that allows answering it with Yes or No only? Answer with 'Yes' or 'No'.",
       },
     ],
     temperature: 0,
@@ -390,7 +390,7 @@ export async function validateQuestion(
         {
           role: "user",
           content:
-            "Create a very short reply to the message, telling that it is not a Yes/No question.",
+            "Reply to the message in 70 characters, asking them to make a Yes/No question.",
         },
       ],
       temperature: 0.8,
