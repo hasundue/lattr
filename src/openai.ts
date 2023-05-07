@@ -434,16 +434,17 @@ export async function createReplyToQuestion(args: {
       `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants.`,
   };
 
-  const system_context = context?.map((chat): ChatCompletionRequestMessage[] => [
-    {
-      role: "system",
-      content: `A participant sent you a question: "${chat.question}"`,
-    },
-    {
-      role: "system",
-      content: `You replied: "${chat.reply}"`,
-    },
-  ]).flat() ?? [];
+  const system_context =
+    context?.map((chat): ChatCompletionRequestMessage[] => [
+      {
+        role: "system",
+        content: `A participant sent you a question: "${chat.question}"`,
+      },
+      {
+        role: "system",
+        content: `You replied: "${chat.reply}"`,
+      },
+    ]).flat() ?? [];
 
   const system_question: ChatCompletionRequestMessage = {
     role: "system",
