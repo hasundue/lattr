@@ -41,7 +41,7 @@ const puzzle2 = {
 describe("createPuzzleIntroduction", () => {
   it("create a random introduction of a puzzle", async () => {
     const res = await createPuzzleIntro();
-    assert(res.intro);
+    assert(res.greet);
     assert(res.rules);
   });
 });

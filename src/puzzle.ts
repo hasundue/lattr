@@ -1,5 +1,5 @@
 import { Event, Kind, nip19, Relay } from "npm:nostr-tools";
-import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
+import { ensurePublicKey, PrivateKey } from "./keys.ts";
 import { NostrProfile } from "./nostr.ts";
 import {
   accumulateCompletionUsages,
@@ -12,7 +12,6 @@ import {
   createPuzzleIntro,
   createReplyToQuestion,
   createResultAnnounce,
-  Puzzle,
   ReplyToQuestion,
   validateQuestion,
   ValidQuestion,
@@ -25,60 +24,56 @@ export async function publishPuzzle(context: {
   private_key: PrivateKey;
 }) {
   const { relays, private_key } = context;
+  const public_key = ensurePublicKey(private_key);
+  const usages: CompletionUsage[] = [];
 
+  /**
+   * Publish a puzzle
+   */
   const puzzle = await createPuzzle();
-  const { intro, rules } = await createPuzzleIntro();
+  usages.push(...puzzle.usages);
 
-  const event = createEvent(private_key, {
-    content: `${intro}
+  const intro = await createPuzzleIntro();
+  usages.push(...intro.usages);
+
+  const event_puzzle = createEvent(private_key, {
+    content: `${intro.greet}
 
 Q: ${puzzle.problem}
 
-${rules}`,
+${intro.rules}`,
   });
 
   for (const relay of context.relays) {
-    publishEvent(relay, event);
+    publishEvent(relay, event_puzzle);
   }
 
-  await subscribePuzzleThread({ puzzle, event, relay: relays[0], private_key });
-}
-
-const BLACKLIST: PublicKey[] = [
-  // Cyborg
-  "8b928bf75edb4ddffe2800557ffe7e5e2b07c5d5102f97d1955f921585938201" as PublicKey,
-];
-
-export async function subscribePuzzleThread(args: {
-  puzzle: Puzzle;
-  event: Event;
-  relay: Relay;
-  private_key: PrivateKey;
-}) {
-  const { puzzle, relay, private_key } = args;
-  const event_puzzle = args.event;
-  const public_key = ensurePublicKey(private_key);
-
-  const usages: CompletionUsage[] = [];
+  /**
+  /* Subscribe questions to the puzzle thread
+  /*/
   const chats_yes: Chat[] = [];
-  const replied_invalid = new Set<PublicKey>();
   const events_sub = [event_puzzle.id];
 
+  const relay = relays[0];
   const sub = relay.sub([]);
 
   function updateSub(opts?: { newEvent?: string }) {
     if (opts?.newEvent) {
       events_sub.push(opts.newEvent);
     }
-    sub.sub([{
+    const filter = {
       kinds: [Kind.Text],
       "#e": events_sub,
       "#p": [public_key],
       since: now(),
-    }], {});
+    };
+    sub.sub([filter], {});
+    console.log(
+      `Updated the subscription to the puzzle thread ${event_puzzle.id}:`,
+      filter,
+    );
   }
   updateSub();
-  console.log(`Subscribed replies to a puzzle thread ${event_puzzle.id}`);
 
   const stream = new ReadableStream<Event>({
     start: (controller) => {
@@ -88,9 +83,7 @@ export async function subscribePuzzleThread(args: {
     },
   });
 
-  async function isDirectMention(
-    event: Event,
-  ): Promise<boolean> {
+  async function isDirectMention(event: Event): Promise<boolean> {
     for (const tag of event.tags) {
       if (tag[0] !== "e") {
         continue;
@@ -100,7 +93,9 @@ export async function subscribePuzzleThread(args: {
         console.warn("Parent event not found:", tag[1]);
         continue;
       }
+      console.debug("Parent event found:", parent);
       if (parent.pubkey !== public_key) {
+        console.log("Parent event is not from me:", tag[1]);
         return false;
       }
     }
@@ -108,21 +103,22 @@ export async function subscribePuzzleThread(args: {
   }
 
   for await (const event_recieved of stream) {
-    // Check if we are handling a non-targeted event
+    // Make sure that the reply is too quick
+    if (event_recieved.created_at - event_puzzle.created_at < 10) {
+      console.log("Ignore the event because it's too quick:", event_recieved);
+    }
+
+    // Make sure that we are handling a non-targeted event
     if (
-      // A blacklisted user, or
-      BLACKLIST.includes(event_recieved.pubkey as PublicKey) ||
-      // a message from me, or
-      event_recieved.pubkey === public_key ||
-      // a message to someone else
-      !(await isDirectMention(event_recieved))
+      event_recieved.pubkey === public_key || // a message from me, or
+      !(await isDirectMention(event_recieved)) // a message to someone else
     ) {
       // If not, just ignore the event
       console.log("This event is not targeted to me:", event_recieved);
       continue;
     }
 
-    // Check if the message is harmful
+    // Make sure that the message is not harmful
     const result_moderation = await applyModeration(
       event_recieved.content,
     );
@@ -144,22 +140,15 @@ export async function subscribePuzzleThread(args: {
 
     // If not, reply with a validation message
     if (!result_validation.valid) {
-      // Ignore if already replied
-      if (replied_invalid.has(event_recieved.pubkey as PublicKey)) {
-        continue;
-      }
       const reply = createReplyEvent(private_key, event_recieved, relay, {
         content: result_validation.reply,
       });
-      replied_invalid.add(event_recieved.pubkey as PublicKey);
       updateSub({ newEvent: reply.id });
       publishEvent(relay, reply);
       continue;
     }
 
     // Retrieve the context if any
-    const context: Chat[] = [];
-
     const parent_tag = event_recieved.tags.find((it) =>
       it[0] === "e" && it[1] !== event_puzzle.id
     );
@@ -176,12 +165,12 @@ export async function subscribePuzzleThread(args: {
       })
       : null;
 
-    if (parent && grandparent) {
-      context.push({
+    const context = parent && grandparent
+      ? [{
         question: grandparent.content as ValidQuestion,
         reply: parent.content as ReplyToQuestion,
-      });
-    }
+      }]
+      : [];
 
     // Create a reply to the question
     const result_reply = await createReplyToQuestion({

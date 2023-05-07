@@ -223,7 +223,7 @@ export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
 }
 
 export async function createPuzzleIntro(): Promise<
-  { intro: string; rules: string } & CompletionResult
+  { greet: string; rules: string } & CompletionResult
 > {
   console.log("Asking GPT-3.5 to create an introduction...\n");
 
@@ -275,7 +275,7 @@ export async function createPuzzleIntro(): Promise<
   usages.push(completion_rules.usage);
 
   return {
-    intro: assistant_intro.content,
+    greet: assistant_intro.content,
     rules: completion_rules.choices[0].message.content,
     usages,
   };
