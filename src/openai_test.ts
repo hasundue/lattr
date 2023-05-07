@@ -24,11 +24,18 @@ describe("createPuzzle", () => {
   });
 });
 
-const puzzle = {
+const puzzle1 = {
   problem:
     "Every day at exactly 3 PM, a man goes to the park and stands by a specific tree for 10 minutes. There are no benches, nor is he doing anything noticeable. No one ever joins him. Why does he do this?",
   answer:
     "The man is a beekeeper who lives nearby. One of his beehives is in that tree, and he visits the park daily to check on the bees. He stands still for 10 minutes to observe the bees without disturbing them and to make sure the hive is healthy and productive.",
+};
+
+const puzzle2 = {
+  problem:
+    "A man entered a town on Friday, stayed for 3 days, and left on Friday. How did he do it?",
+  answer:
+    "The man arrived on Friday, stayed for three days (Friday, Saturday, and Sunday), and left on Friday. The twist is that he entered riding a horse named 'Friday'."
 };
 
 describe("createPuzzleIntroduction", () => {
@@ -42,23 +49,27 @@ describe("createPuzzleIntroduction", () => {
 describe("validateQuestion", () => {
   describe("should return true for a valid question", () => {
     it("Is he working there?", async (t) => {
-      const res = await validateQuestion(puzzle, t.name as ApprovedMessage);
+      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
+      assert(res.valid);
+    });
+    it("Did he timeleap?", async (t) => {
+      const res = await validateQuestion(puzzle2, t.name as ApprovedMessage);
       assert(res.valid);
     });
   });
   describe("should return false for an invalid question", () => {
     it("I don't like you.", async (t) => {
-      const res = await validateQuestion(puzzle, t.name as ApprovedMessage);
+      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
       assertFalse(res.valid);
       assertEquals(res.reason, "not related");
     });
     it("Is America greater than before?", async (t) => {
-      const res = await validateQuestion(puzzle, t.name as ApprovedMessage);
+      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
       assertFalse(res.valid);
       assertEquals(res.reason, "not related");
     });
-    it("What is the job of the man?", { only: true }, async (t) => {
-      const res = await validateQuestion(puzzle, t.name as ApprovedMessage);
+    it("What is the job of the man?", async (t) => {
+      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
       assertFalse(res.valid);
       assertEquals(res.reason, "not a yes/no question");
     });
@@ -69,7 +80,7 @@ describe("createReplyToQuestion", () => {
   describe("should not return Yes", () => {
     it("Is he a teacher?", async (t) => {
       const res = await createReplyToQuestion({
-        puzzle,
+        puzzle: puzzle1,
         question: t.name as ValidQuestion,
       });
       assertFalse(res.yes);
@@ -78,14 +89,14 @@ describe("createReplyToQuestion", () => {
   describe("should return Yes", () => {
     it("Does he stay there for his work?", async (t) => {
       const res = await createReplyToQuestion({
-        puzzle,
+        puzzle: puzzle1,
         question: t.name as ValidQuestion,
       });
       assert(res.yes);
     });
     it("Are they bees?", async (t) => {
       const res = await createReplyToQuestion({
-        puzzle,
+        puzzle: puzzle1,
         question: t.name as ValidQuestion,
         context: [
           {
@@ -102,7 +113,7 @@ describe("createReplyToQuestion", () => {
 describe("checkPuzzleSolved", () => {
   it("should return false", async () => {
     const res = await checkPuzzleSolved({
-      puzzle,
+      puzzle: puzzle1,
       chats: [
         {
           question: "Does he stay there for his work?" as ValidQuestion,
@@ -114,7 +125,7 @@ describe("checkPuzzleSolved", () => {
   });
   it("should return true", async () => {
     const res = await checkPuzzleSolved({
-      puzzle,
+      puzzle: puzzle1,
       chats: [
         {
           question: "Does he stay there for his work?" as ValidQuestion,
