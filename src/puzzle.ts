@@ -34,11 +34,7 @@ export async function publishPuzzle(context: {
 
 Q: ${puzzle.problem}
 
-${rules} #puzzles #riddles`,
-    tags: [
-      ["t", "puzzles"],
-      ["t", "riddles"],
-    ],
+${rules}`,
   });
 
   for (const relay of context.relays) {
