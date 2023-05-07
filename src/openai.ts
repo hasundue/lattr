@@ -237,7 +237,7 @@ export async function createPuzzleIntro(): Promise<
   const user_intro: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Create a brief introduction for the puzzle, started with some greeting words, in 70 characters or less. Do not include any contents of a puzzle.`
+      `Create a brief introduction for the puzzle, started with some greeting words, in 50 characters or less. Do not include any contents of a puzzle.`
   };
 
   const completion_intro = await createChatCompletion({
@@ -254,7 +254,7 @@ export async function createPuzzleIntro(): Promise<
   const system_rules: ChatCompletionRequestMessage = {
     role: "system",
     content:
-      `Rule: People may ask you Yes/No questions to gather additional information about the puzzle.`,
+      `Rule: Your friends may ask you Yes/No questions to gather additional information about the puzzle.`,
   };
 
   const completion_rules = await createChatCompletion({
@@ -267,7 +267,7 @@ export async function createPuzzleIntro(): Promise<
       {
         role: "user",
         content:
-          `Explain the rule above briefly and encourage readers in 140 characters or less, without hashtags or emojis. Do not include contents of a puzzle.`,
+          `Explain the rule above briefly and encourage your friends in 100 characters or less, without hashtags or emojis. Do not include contents of a puzzle.`,
       },
     ],
     temperature: 1,
