@@ -461,10 +461,10 @@ export async function createReplyToQuestion(args: {
       {
         role: "user",
         content:
-          "Create a Yes/No reply to the question. Do not reveal any additional information about the answer of the puzzle.",
+          "Create a Yes/No reply to the question, with your brief impression on the question in a several words lastly. Do not reveal any additional information about the answer of the puzzle.",
       },
     ],
-    temperature: 0,
+    temperature: 0.8,
   });
   usages.push(completion_reply.usage);
 

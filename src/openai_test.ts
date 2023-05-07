@@ -65,7 +65,7 @@ describe("validateQuestion", () => {
   });
 });
 
-describe("replyToQuestion", () => {
+describe("createReplyToQuestion", () => {
   describe("should not return Yes", () => {
     it("Is he a teacher?", async (t) => {
       const res = await createReplyToQuestion({
