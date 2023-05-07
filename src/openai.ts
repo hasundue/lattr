@@ -231,7 +231,7 @@ export async function createPuzzleIntro(): Promise<
   const user_intro: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Create a brief introduction for the puzzle, started with some greeting words, in 70 characters or less. Example: Hello everyone! Here is my new puzzle:`,
+      `Create a brief introduction for the puzzle, started with some greeting words, in 70 characters or less. Do not include any contents of a puzzle.`,
   };
 
   const completion_intro = await createChatCompletion({
@@ -248,7 +248,7 @@ export async function createPuzzleIntro(): Promise<
   const system_rules: ChatCompletionRequestMessage = {
     role: "system",
     content:
-      `Participants may ask you Yes/No questions to propose an answer, or gather additional information about the puzzle.`,
+      `Participants may ask you Yes/No questions to propose an answer, or gather additional information about the puzzle. Do not include any contents of a puzzle.`,
   };
 
   const completion_rules = await createChatCompletion({
