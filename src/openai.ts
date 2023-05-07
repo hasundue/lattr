@@ -267,7 +267,7 @@ export async function createPuzzleIntro(): Promise<
       {
         role: "user",
         content:
-          `Explain the rule above briefly and encourage your friends in 100 characters or less, without hashtags or emojis. Do not include contents of a puzzle.`,
+          `Explain the rule above briefly and encourage your friends in 140 characters or less, without hashtags or emojis. Do not include contents of a puzzle.`,
       },
     ],
     temperature: 1,
@@ -333,7 +333,7 @@ export async function validateQuestion(
       {
         role: "user",
         content:
-          "Is the message asking additional information about a scenario or situation described in the puzzle? Answer with 'Yes' or 'No'.",
+          "Is the participant trying to solve the puzzle? Answer with 'Yes' or 'No'.",
       },
     ],
     temperature: 0,

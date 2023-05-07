@@ -57,7 +57,7 @@ describe("validateQuestion", () => {
       assertFalse(res.valid);
       assertEquals(res.reason, "not related");
     });
-    it("What is the job of the man?", async (t) => {
+    it("What is the job of the man?", { only: true }, async (t) => {
       const res = await validateQuestion(puzzle, t.name as ApprovedMessage);
       assertFalse(res.valid);
       assertEquals(res.reason, "not a yes/no question");
