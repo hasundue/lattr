@@ -196,6 +196,7 @@ export type CompletionResult = {
 export type Puzzle = {
   problem: string;
   answer: string;
+  keyfact: string;
 };
 
 export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
@@ -211,7 +212,17 @@ export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
       {
         role: "user",
         content:
-          "Create an unique and interesting puzzle. The problem should present an unusual scenario or situation with a challenging mystery, asking you to find a story behind it which solves the mystery elegantly without any logical inconsistency. The last sentence of the problem must be a simple and brief question. Return a JSON object with 'problem' and 'answer' fields, preferably in 280 characters or less each.",
+          `Create an unique and interesting puzzle.
+Requirements:
+- The problem should present an unusual scenario or situation with a challenging mystery, asking you to find a story behind it which solves the mystery elegantly without any logical inconsistency.
+- The last sentence of the problem must be a simple and brief question.
+- Define the fact that participant must discover, which are not mentioned in the problem but in the answer.
+Desired format: 
+{ 
+  "problem": <problem in 280 characters or less>,
+  "answer": <answer in 280 characters or less>,
+  "keyfact": <a brief sentence in 70 characters or less>
+}`
       },
     ],
     temperature: 1,
@@ -304,7 +315,7 @@ export async function validateQuestion(
   puzzle: Puzzle,
   question: ApprovedMessage,
 ): Promise<ValidateQuestionResult> {
-  console.log("Asking GPT-3.5 to validate the puzzle...\n");
+  console.log("Asking GPT-3.5 to validate the message...\n");
 
   const usages: CompletionUsage[] = [];
 
@@ -342,7 +353,6 @@ export async function validateQuestion(
         // content: `Is the participant trying to solve the puzzle?
         content:
           `Do you think the message is from a participant who is trying to solve the puzzle?
-
 Desired format: Yes/No`,
       },
     ],
@@ -383,8 +393,7 @@ Desired format: Yes/No`,
       {
         role: "user",
         content:
-          `Does the message have a grammatical structure that allows answering it with Yes or No only?
-
+          `Does the message have a grammatical structure that allows answering it with affirmation or negation?
 Desired format: Yes/No`,
       },
     ],
@@ -452,19 +461,18 @@ export async function createReplyToQuestion(args: {
       `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants.`,
   };
 
-  const system_context =
-    context?.map((chat): ChatCompletionRequestMessage[] => [
-      {
-        role: "user",
-        content: chat.question,
-      },
-      {
-        role: "assistant",
-        content: chat.reply,
-      },
-    ]).flat() ?? [];
+  const chat_context = context?.map((chat): ChatCompletionRequestMessage[] => [
+    {
+      role: "user",
+      content: chat.question,
+    },
+    {
+      role: "assistant",
+      content: chat.reply,
+    },
+  ]).flat() ?? [];
 
-  const system_question: ChatCompletionRequestMessage = {
+  const user_question: ChatCompletionRequestMessage = {
     role: "user",
     content: question,
   };
@@ -475,15 +483,15 @@ export async function createReplyToQuestion(args: {
       system_init,
       system_problem,
       system_answer,
-      ...system_context,
+      ...chat_context,
       {
         role: "system",
-        content:
-          `Reply to the following question with 'Yes' or 'No', along with your brief impression on the question in a several words lastly. Do not reveal further information about the puzzle. Example: "Yes. Good point!"`,
+        content: `Reply to the following message.
+Desired format: <Yes/No>, <an encouraging comment in 2-5 words>`,
       },
-      system_question,
+      user_question,
     ],
-    temperature: 0.5,
+    temperature: 0,
   });
   usages.push(completion_reply.usage);
 
@@ -513,39 +521,54 @@ export async function checkPuzzleSolved(args: {
     content: "You are an assistant of an online puzzle session.",
   };
 
-  const system_problem: ChatCompletionRequestMessage = {
-    role: "system",
-    content: `A puzzle has been presented: "${puzzle.problem}".`,
-  };
+//   const system_problem: ChatCompletionRequestMessage = {
+//     role: "system",
+//     content: `The ongoing puzzle: "${puzzle.problem}".`,
+//   };
 
-  const system_answer: ChatCompletionRequestMessage = {
+//   const system_answer: ChatCompletionRequestMessage = {
+//     role: "system",
+//     content:
+//       `The answer: "${puzzle.answer}" (not revealed to the participants).`,
+//   };
+
+  // const system_rule: ChatCompletionRequestMessage = {
+  //   role: "system",
+  //   content:
+  //     `Rule: Participants may ask you Yes/No questions to gather additional information about the puzzle. The puzzle is considered to be solved when participants discovers the following key fact: ${puzzle.keyfact}`,
+  // };
+
+  const system_keyfact: ChatCompletionRequestMessage = {
     role: "system",
     content:
-      `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants yet.`,
+      `Rule: The puzzle is considered to be solved when the following key fact is revealed through conversations: ${puzzle.keyfact}`,
   };
 
   const system_chats = chats.map((chat): ChatCompletionRequestMessage[] => [
     {
       role: "system",
-      content: `Recieved a question: "${chat.question}"`,
+      content: `A participant: "${chat.question}"`,
     },
     {
       role: "system",
-      content: `You replied: "${chat.reply}"`,
+      content: `You: "${chat.reply}"`,
     },
   ]).flat();
 
   const completion_solved = await createChatCompletion({
-    model: "gpt-4",
+    model: "gpt-3.5",
     messages: [
       system_init,
-      system_problem,
-      system_answer,
+      // system_problem,
+      // system_answer,
+      // system_rule,
+      system_keyfact,
       ...system_chats,
       {
         role: "user",
         content:
-          "Do you think the most important part of the answer has been revealed in the conversation? Answer in 70 characters or less, starting with 'Yes' or 'No'.",
+          `Do you think that the puzzle is solved in the conversations?
+Desired format: <Yes/No>`,
       },
     ],
     temperature: 0,

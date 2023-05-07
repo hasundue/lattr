@@ -12,6 +12,7 @@ import {
   createPuzzleIntro,
   createReplyToQuestion,
   createResultAnnounce,
+  Puzzle,
   ReplyToQuestion,
   validateQuestion,
   ValidQuestion,
@@ -24,21 +25,23 @@ describe("createPuzzle", () => {
   });
 });
 
-const puzzle1 = {
+const puzzle1: Puzzle = {
   problem:
     "Every day at exactly 3 PM, a man goes to the park and stands by a specific tree for 10 minutes. There are no benches, nor is he doing anything noticeable. No one ever joins him. Why does he do this?",
   answer:
     "The man is a beekeeper who lives nearby. One of his beehives is in that tree, and he visits the park daily to check on the bees. He stands still for 10 minutes to observe the bees without disturbing them and to make sure the hive is healthy and productive.",
+  keyfact: "The man is a beekeeper.",
 };
 
-const puzzle2 = {
+const puzzle2: Puzzle = {
   problem:
     "A man entered a town on Friday, stayed for 3 days, and left on Friday. How did he do it?",
   answer:
-    "The man arrived on Friday, stayed for three days (Friday, Saturday, and Sunday), and left on Friday. The twist is that he entered riding a horse named 'Friday'."
+    "The man arrived on Friday, stayed for three days (Friday, Saturday, and Sunday), and left on Friday. The twist is that he entered riding a horse named 'Friday'.",
+  keyfact: "The name of the horse is Friday.",
 };
 
-describe("createPuzzleIntroduction", () => {
+describe("createIntro", () => {
   it("create a random introduction of a puzzle", async () => {
     const res = await createPuzzleIntro();
     assert(res.greet);
@@ -122,6 +125,13 @@ describe("createReplyToQuestion", () => {
       });
       assert(res.yes);
     });
+    it("He is a beekeeper!", async (t) => {
+      const res = await createReplyToQuestion({
+        puzzle: puzzle1,
+        question: t.name as ValidQuestion,
+      });
+      assert(res.yes);
+    });
   });
 });
 
@@ -144,11 +154,11 @@ describe("checkPuzzleSolved", () => {
       chats: [
         {
           question: "Does he stay there for his work?" as ValidQuestion,
-          reply: "Yes!" as ReplyToQuestion,
+          reply: "Yes." as ReplyToQuestion,
         },
         {
           question: "Is he a beekeeper?" as ValidQuestion,
-          reply: "Yes!" as ReplyToQuestion,
+          reply: "Yes." as ReplyToQuestion,
         },
       ],
     });
