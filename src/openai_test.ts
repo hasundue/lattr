@@ -85,6 +85,13 @@ describe("createReplyToQuestion", () => {
       });
       assertFalse(res.yes);
     });
+    it("Did he timeleap?", async (t) => {
+      const res = await createReplyToQuestion({
+        puzzle: puzzle2,
+        question: t.name as ValidQuestion,
+      });
+      assertFalse(res.yes);
+    });
   });
   describe("should return Yes", () => {
     it("Does he stay there for his work?", async (t) => {

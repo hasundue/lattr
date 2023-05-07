@@ -237,7 +237,7 @@ export async function createPuzzleIntro(): Promise<
   const user_intro: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Create a brief introduction for the puzzle, started with some greeting words, in 50 characters or less. Do not include any contents of a puzzle.`
+      `Create a brief introduction for the puzzle, started with some greeting words, in 50 characters or less. Do not include any contents of a puzzle.`,
   };
 
   const completion_intro = await createChatCompletion({
@@ -443,35 +443,35 @@ export async function createReplyToQuestion(args: {
   const system_context =
     context?.map((chat): ChatCompletionRequestMessage[] => [
       {
-        role: "system",
-        content: `A participant sent you a question: "${chat.question}"`,
+        role: "user",
+        content: chat.question,
       },
       {
-        role: "system",
-        content: `You replied: "${chat.reply}"`,
+        role: "assistant",
+        content: chat.reply,
       },
     ]).flat() ?? [];
 
   const system_question: ChatCompletionRequestMessage = {
-    role: "system",
-    content: `A participant sent you a question: "${question}"`,
+    role: "user",
+    content: question,
   };
 
   const completion_reply = await createChatCompletion({
-    model: "gpt-4",
+    model: "gpt-3.5",
     messages: [
       system_init,
       system_problem,
       system_answer,
       ...system_context,
-      system_question,
       {
-        role: "user",
+        role: "system",
         content:
-          "Create a Yes/No reply to the question, with your brief impression on the question in a several words lastly. Do not reveal any additional information about the answer of the puzzle.",
+          `Reply to the following question with 'Yes' or 'No', along with your brief impression on the question in a several words lastly. Do not reveal further information about the puzzle. Example: "Yes. Good point!"`,
       },
+      system_question,
     ],
-    temperature: 0.8,
+    temperature: 0.5,
   });
   usages.push(completion_reply.usage);
 
