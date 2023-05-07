@@ -52,7 +52,15 @@ describe("validateQuestion", () => {
       const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
       assert(res.valid);
     });
+    it("He is a beekeeper!", async (t) => {
+      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
+      assert(res.valid);
+    });
     it("Did he timeleap?", async (t) => {
+      const res = await validateQuestion(puzzle2, t.name as ApprovedMessage);
+      assert(res.valid);
+    });
+    it("The name of the hourse is Friday!", async (t) => {
       const res = await validateQuestion(puzzle2, t.name as ApprovedMessage);
       assert(res.valid);
     });

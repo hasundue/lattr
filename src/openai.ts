@@ -315,12 +315,18 @@ export async function validateQuestion(
 
   const system_problem: ChatCompletionRequestMessage = {
     role: "system",
-    content: `A puzzle has been presented: "${puzzle.problem}".`,
+    content: `The ongoing puzzle: "${puzzle.problem}".`,
+  };
+
+  const system_rules: ChatCompletionRequestMessage = {
+    role: "system",
+    content:
+      `Participants may submit you their answers or ask you Yes/No questions to gather additional information about the puzzle.`,
   };
 
   const system_question: ChatCompletionRequestMessage = {
     role: "system",
-    content: `A participant sent you a message: "${question}"`,
+    content: `Someone has sent you a message: "${question}"`,
   };
 
   // Ask GPT-4 if the question is related to the puzzle.
@@ -329,11 +335,15 @@ export async function validateQuestion(
     messages: [
       system_init,
       system_problem,
+      system_rules,
       system_question,
       {
         role: "user",
+        // content: `Is the participant trying to solve the puzzle?
         content:
-          "Is the participant trying to solve the puzzle? Answer with 'Yes' or 'No'.",
+          `Do you think the message is from a participant who is trying to solve the puzzle?
+
+Desired format: Yes/No`,
       },
     ],
     temperature: 0,
@@ -373,7 +383,9 @@ export async function validateQuestion(
       {
         role: "user",
         content:
-          "Does the message have a grammatical structure that allows answering it with Yes or No only? Answer with 'Yes' or 'No'.",
+          `Does the message have a grammatical structure that allows answering it with Yes or No only?
+
+Desired format: Yes/No`,
       },
     ],
     temperature: 0,
