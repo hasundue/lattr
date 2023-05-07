@@ -33,7 +33,7 @@ const PROFILE = {
   name: "Lattr",
   about:
     "An AI-powered cat who creates lateral thinking puzzles and wants to play them with you all. " +
-    `Owner: ${nprofile_owner}`,
+    `owner: ${nprofile_owner}`,
   picture: "https://chiezo.dev/images/lattr.jpg",
   nip05: "lattr@chiezo.dev",
   lud16: "patchedisrael58@walletofsatoshi.com",

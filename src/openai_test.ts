@@ -7,10 +7,12 @@ import {
 import { NostrProfile } from "./nostr.ts";
 import {
   ApprovedMessage,
+  checkPuzzleSolved,
   createPuzzle,
   createPuzzleIntro,
   createReplyToQuestion,
   createResultAnnounce,
+  ReplyToQuestion,
   validateQuestion,
   ValidQuestion,
 } from "./openai.ts";
@@ -64,19 +66,48 @@ describe("validateQuestion", () => {
 });
 
 describe("replyToQuestion", () => {
-  describe("should return yes but not solved", () => {
+  describe("should return Yes", () => {
     it("Does he stay there for his work?", async (t) => {
       const res = await createReplyToQuestion(puzzle, t.name as ValidQuestion);
       assert(res.yes);
-      assertFalse(res.solved);
     });
   });
-  describe("should return yes and solved", () => {
-    it("Is he a beekeeper?", async (t) => {
+  describe("should return No", () => {
+    it("Is he a teacher?", async (t) => {
       const res = await createReplyToQuestion(puzzle, t.name as ValidQuestion);
-      assert(res.yes);
-      assert(res.solved);
+      assertFalse(res.yes);
     });
+  });
+});
+
+describe("checkPuzzleSolved", () => {
+  it("should return false", async () => {
+    const res = await checkPuzzleSolved({
+      puzzle,
+      chats: [
+        {
+          question: "Does he stay there for his work?" as ValidQuestion,
+          reply: "Yes!" as ReplyToQuestion,
+        },
+      ],
+    });
+    assertFalse(res);
+  });
+  it("should return true", async () => {
+    const res = await checkPuzzleSolved({
+      puzzle,
+      chats: [
+        {
+          question: "Does he stay there for his work?" as ValidQuestion,
+          reply: "Yes!" as ReplyToQuestion,
+        },
+        {
+          question: "Is he a beekeeper?" as ValidQuestion,
+          reply: "Yes!" as ReplyToQuestion,
+        },
+      ],
+    });
+    assert(res);
   });
 });
 

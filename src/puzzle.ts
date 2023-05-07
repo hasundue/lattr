@@ -5,6 +5,8 @@ import {
   accumulateCompletionUsages,
   AccumulatedCompletionUsage,
   applyModeration,
+  Chat,
+  checkPuzzleSolved,
   CompletionUsage,
   createPuzzle,
   createPuzzleIntro,
@@ -51,6 +53,7 @@ export async function subscribePuzzleThread(args: {
   const public_key = ensurePublicKey(private_key);
 
   const usages: CompletionUsage[] = [];
+  const chats_yes: Chat[] = [];
 
   const sub = relay.sub([
     {
@@ -122,6 +125,12 @@ export async function subscribePuzzleThread(args: {
       puzzle,
       result_validation.question,
     );
+    if (result_reply.yes) {
+      chats_yes.push({
+        question: result_validation.question,
+        reply: result_reply.reply,
+      });
+    }
     usages.push(...result_reply.usages);
 
     publishEvent(
@@ -131,9 +140,8 @@ export async function subscribePuzzleThread(args: {
       }),
     );
 
-    // If the puzzle has been solved, publish an event to reveal the answer.
-    // Return from the root function
-    if (result_reply.solved) {
+    // If the puzzle has been solved, publish the answer and return.
+    if (await checkPuzzleSolved({ puzzle, chats: chats_yes })) {
       const result_announce = await createResultAnnounce({
         winner: nip19.nprofileEncode({
           pubkey: event_recieved.pubkey,

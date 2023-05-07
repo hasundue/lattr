@@ -406,7 +406,6 @@ export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
 export type CreateReplyToQuestionResult = {
   yes: boolean;
   reply: ReplyToQuestion;
-  solved: boolean;
 } & CompletionResult;
 
 export async function createReplyToQuestion(
@@ -448,7 +447,7 @@ export async function createReplyToQuestion(
       {
         role: "user",
         content:
-          "Create a Yes/No reply to the question. Answer in excitement if the question is critical.",
+          "Create a Yes/No reply to the question. Answer in excitement if the question is critical. Do not reveal any additional information about the answer of the puzzle.",
       },
     ],
     temperature: 0,
@@ -458,14 +457,49 @@ export async function createReplyToQuestion(
   const reply = completion_reply.choices[0].message.content;
   const yes = reply.startsWith("Yes");
 
-  if (!yes) {
-    return {
-      yes,
-      reply: reply as ReplyToQuestion,
-      solved: false,
-      usages,
-    };
-  }
+  return {
+    yes,
+    reply: reply as ReplyToQuestion,
+    usages,
+  };
+}
+
+export type Chat = {
+  question: ValidQuestion;
+  reply: ReplyToQuestion;
+};
+
+export async function checkPuzzleSolved(args: {
+  puzzle: Puzzle;
+  chats: Chat[];
+}): Promise<boolean> {
+  const { puzzle, chats } = args;
+
+  const system_init: ChatCompletionRequestMessage = {
+    role: "system",
+    content: "You are an assistant of an online puzzle session.",
+  };
+
+  const system_problem: ChatCompletionRequestMessage = {
+    role: "system",
+    content: `A puzzle has been presented: "${puzzle.problem}".`,
+  };
+
+  const system_answer: ChatCompletionRequestMessage = {
+    role: "system",
+    content: `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants yet.`,
+  };
+
+  const system_chats = chats.map((chat): ChatCompletionRequestMessage[] => [
+    {
+      role: "system",
+      content: `A participant sent you a question: "${chat.question}"`,
+    },
+    {
+      role: "system",
+      content: `You replied: "${chat.reply}"`,
+    },
+  ]).flat();
 
   const completion_solved = await createChatCompletion({
     model: "gpt-3.5",
@@ -473,26 +507,17 @@ export async function createReplyToQuestion(
       system_init,
       system_problem,
       system_answer,
-      system_question,
-      {
-        role: "system",
-        content: `You answered: "${reply}"`,
-      },
+      ...system_chats,
       {
         role: "user",
-        content: "Is the puzzle solved in the conversation?",
+        content:
+          "Do you think the puzzle has been solved by participants during the conversation? Answer in 70 characters or less.",
       },
     ],
     temperature: 0,
   });
-  usages.push(completion_solved.usage);
 
-  return {
-    yes,
-    reply: reply as ReplyToQuestion,
-    solved: completion_solved.choices[0].message.content.startsWith("Yes"),
-    usages,
-  };
+  return completion_solved.choices[0].message.content.startsWith("Yes");
 }
 
 export type ResultAnnounce = {
