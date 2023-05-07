@@ -224,8 +224,7 @@ export async function createPuzzleIntro(): Promise<
 
   const system_init: ChatCompletionRequestMessage = {
     role: "system",
-    content:
-      "You are an assistant of an online session of lateral thinking puzzles.",
+    content: "You are posting a puzzle you created to a SNS.",
   };
 
   const user_intro: ChatCompletionRequestMessage = {
