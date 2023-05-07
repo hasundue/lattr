@@ -1,10 +1,11 @@
 import { signal } from "https://deno.land/std@0.185.0/signal/mod.ts";
-import { nip19, relayInit } from "npm:nostr-tools";
+import { Kind, nip19, relayInit } from "npm:nostr-tools";
 import {
   ensurePrivateKey,
+  createEvent,
+  publishEvent,
   // ensurePublicKey,
   PublicKey,
-  publishProfile,
   // resumeChats,
   subscribeAdmin,
   // subscribeChatInvite,
@@ -16,6 +17,7 @@ const RELAYS = [
 ] as const;
 
 const relays = RELAYS.map((name) => relayInit(`wss://${name}`));
+const relay_main = relays[0];
 
 const privateKey = ensurePrivateKey();
 // const public_key = ensurePublicKey(privateKey);
@@ -38,6 +40,7 @@ const PROFILE = {
   lud16: "patchedisrael58@walletofsatoshi.com",
 } as const;
 
+// Connect to all relays
 for (const relay of relays) {
   relay.on("connect", () => {
     console.log(`connected to ${relay.url}`);
@@ -49,13 +52,28 @@ for (const relay of relays) {
     console.log(`failed to connect to ${relay.url}`);
   });
   await relay.connect();
-}
 
-publishProfile({
-  profile: PROFILE,
-  relays,
-  privateKey,
-});
+  // Publish the profile
+  publishEvent(
+    relay,
+    createEvent(privateKey, {
+      kind: Kind.Metadata,
+      content: JSON.stringify(PROFILE),
+    }),
+  );
+
+  // Publish the contact list (follow the owner)
+  publishEvent(
+    relay,
+    createEvent(privateKey, {
+      kind: Kind.Contacts,
+      tags: [
+        ["p", public_key_owner, relay_main.url, "chiezo"],
+      ],
+      content: "",
+    }),
+  );
+}
 
 // resumeChats({
 //   relay: relays[0],

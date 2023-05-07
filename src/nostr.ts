@@ -4,8 +4,8 @@ export {
   type PrivateKey,
   type PublicKey,
 } from "./keys.ts";
+export { createEvent, publishEvent } from "./event.ts";
 export { subscribeAdmin } from "./admin.ts";
-export { publishProfile } from "./profile.ts";
 export { resumeChats, subscribeChatInvite } from "./chat.ts";
 
 import { Brand } from "./utils.ts";
