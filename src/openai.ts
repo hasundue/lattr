@@ -327,7 +327,7 @@ export async function validateQuestion(
       {
         role: "user",
         content:
-          "Is the message asking additional information about a scenario or situation described in the puzzle?",
+          "Is the message proposing an answer or asking additional information about a scenario or situation described in the puzzle?",
       },
     ],
     temperature: 0,
@@ -462,7 +462,7 @@ export async function createReplyToQuestion(args: {
       {
         role: "user",
         content:
-          "Create a Yes/No reply to the question. Answer in excitement if the question is critical. Do not reveal any additional information about the answer of the puzzle.",
+          "Create a Yes/No reply to the question. Do not reveal any additional information about the answer of the puzzle.",
       },
     ],
     temperature: 0,
@@ -509,7 +509,7 @@ export async function checkPuzzleSolved(args: {
   const system_chats = chats.map((chat): ChatCompletionRequestMessage[] => [
     {
       role: "system",
-      content: `A participant sent you a question: "${chat.question}"`,
+      content: `Recieved a question: "${chat.question}"`,
     },
     {
       role: "system",
@@ -518,7 +518,7 @@ export async function checkPuzzleSolved(args: {
   ]).flat();
 
   const completion_solved = await createChatCompletion({
-    model: "gpt-3.5",
+    model: "gpt-4",
     messages: [
       system_init,
       system_problem,
@@ -527,7 +527,7 @@ export async function checkPuzzleSolved(args: {
       {
         role: "user",
         content:
-          "Do you think the puzzle has been solved by participants during the conversation? Answer in 70 characters or less.",
+          "Do you think the most important part of the answer has been revealed in the conversation? Answer in 70 characters or less, starting with 'Yes' or 'No'.",
       },
     ],
     temperature: 0,

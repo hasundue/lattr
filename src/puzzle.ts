@@ -184,7 +184,9 @@ export async function subscribePuzzleThread(args: {
     );
 
     // If the puzzle has been solved, publish the answer and return.
-    if (await checkPuzzleSolved({ puzzle, chats: chats_yes })) {
+    if (
+      result_reply.yes && await checkPuzzleSolved({ puzzle, chats: chats_yes })
+    ) {
       const result_announce = await createResultAnnounce({
         winner: nip19.nprofileEncode({
           pubkey: event_recieved.pubkey,
