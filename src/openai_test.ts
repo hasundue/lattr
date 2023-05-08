@@ -14,7 +14,7 @@ import {
   createResultAnnounce,
   Puzzle,
   ReplyToQuestion,
-  validateQuestion,
+  validateMessage,
   ValidQuestion,
 } from "./openai.ts";
 
@@ -52,35 +52,35 @@ describe("createIntro", () => {
 describe("validateQuestion", () => {
   describe("should return true for a valid question", () => {
     it("Is he working there?", async (t) => {
-      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
+      const res = await validateMessage(puzzle1, t.name as ApprovedMessage);
       assert(res.valid);
     });
     it("He is a beekeeper!", async (t) => {
-      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
+      const res = await validateMessage(puzzle1, t.name as ApprovedMessage);
       assert(res.valid);
     });
     it("Did he timeleap?", async (t) => {
-      const res = await validateQuestion(puzzle2, t.name as ApprovedMessage);
+      const res = await validateMessage(puzzle2, t.name as ApprovedMessage);
       assert(res.valid);
     });
     it("The name of the hourse is Friday!", async (t) => {
-      const res = await validateQuestion(puzzle2, t.name as ApprovedMessage);
+      const res = await validateMessage(puzzle2, t.name as ApprovedMessage);
       assert(res.valid);
     });
   });
   describe("should return false for an invalid question", () => {
     it("I don't like you.", async (t) => {
-      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
+      const res = await validateMessage(puzzle1, t.name as ApprovedMessage);
       assertFalse(res.valid);
       assertEquals(res.reason, "not related");
     });
     it("Is America greater than before?", async (t) => {
-      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
+      const res = await validateMessage(puzzle1, t.name as ApprovedMessage);
       assertFalse(res.valid);
       assertEquals(res.reason, "not related");
     });
     it("What is the job of the man?", async (t) => {
-      const res = await validateQuestion(puzzle1, t.name as ApprovedMessage);
+      const res = await validateMessage(puzzle1, t.name as ApprovedMessage);
       assertFalse(res.valid);
       assertEquals(res.reason, "not a yes/no question");
     });

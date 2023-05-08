@@ -39,9 +39,14 @@ export function subscribeChatInvite(opts: {
     if (!verified) {
       publishEvent(
         relay,
-        createReplyEvent(privateKey, event, relay, {
-          content: "I could not find a NIP-05 verified profile for you. " +
-            "I'm afraid that I can only join chats with verified users.",
+        createReplyEvent({
+          event,
+          template: {
+            content: "I could not find a NIP-05 verified profile for you. " +
+              "I'm afraid that I can only join chats with verified users.",
+          },
+          relay,
+          privateKey,
         }),
       );
       return;
@@ -51,8 +56,13 @@ export function subscribeChatInvite(opts: {
     if (chats.has(chat)) {
       publishEvent(
         relay,
-        createReplyEvent(privateKey, event, relay, {
-          content: "I'm already in!",
+        createReplyEvent({
+          event,
+          template: {
+            content: "I'm already in!",
+          },
+          relay,
+          privateKey,
         }),
       );
       return;
@@ -64,8 +74,13 @@ export function subscribeChatInvite(opts: {
     // Reply to the invitation
     publishEvent(
       relay,
-      createReplyEvent(privateKey, event, relay, {
-        content: "I'm joining!",
+      createReplyEvent({
+        event,
+        template: {
+          content: "I'm joining!",
+        },
+        relay,
+        privateKey,
       }),
     );
 

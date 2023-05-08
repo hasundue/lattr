@@ -40,6 +40,8 @@ export type ModerationCategory =
 export async function applyModeration(
   message: string,
 ): Promise<ModerationResult> {
+  console.log("Applying moderation by OpenAI...");
+
   const { data } = await openai.createModeration({
     input: message,
     model: "text-moderation-latest",
@@ -211,8 +213,7 @@ export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
       },
       {
         role: "user",
-        content:
-          `Create an unique, interesting, and challenging puzzle.
+        content: `Create an unique, interesting, and challenging puzzle.
 Requirements:
 - The problem should present an unusual scenario or situation with a challenging mystery
 - Readers must find a surprising story behind it, which elegantly solves the mystery without logical inconsistency.
@@ -223,7 +224,7 @@ Desired format:
   "problem": <problem in 280 characters or less>,
   "answer": <answer in 280 characters or less>,
   "keyfact": <a brief sentence in 70 characters or less>
-}`
+}`,
       },
     ],
     temperature: 1,
@@ -312,7 +313,7 @@ export type ValidateQuestionResult =
   | ValidateQuestionConcreteResult<true>
   | ValidateQuestionConcreteResult<false>;
 
-export async function validateQuestion(
+export async function validateMessage(
   puzzle: Puzzle,
   question: ApprovedMessage,
 ): Promise<ValidateQuestionResult> {
@@ -522,23 +523,6 @@ export async function checkPuzzleSolved(args: {
     content: "You are an assistant of an online puzzle session.",
   };
 
-//   const system_problem: ChatCompletionRequestMessage = {
-//     role: "system",
-//     content: `The ongoing puzzle: "${puzzle.problem}".`,
-//   };
-
-//   const system_answer: ChatCompletionRequestMessage = {
-//     role: "system",
-//     content:
-//       `The answer: "${puzzle.answer}" (not revealed to the participants).`,
-//   };
-
-  // const system_rule: ChatCompletionRequestMessage = {
-  //   role: "system",
-  //   content:
-  //     `Rule: Participants may ask you Yes/No questions to gather additional information about the puzzle. The puzzle is considered to be solved when participants discovers the following key fact: ${puzzle.keyfact}`,
-  // };
-
   const system_keyfact: ChatCompletionRequestMessage = {
     role: "system",
     content:
@@ -560,15 +544,11 @@ export async function checkPuzzleSolved(args: {
     model: "gpt-3.5",
     messages: [
       system_init,
-      // system_problem,
-      // system_answer,
-      // system_rule,
       system_keyfact,
       ...system_chats,
       {
         role: "user",
-        content:
-          `Do you think that the puzzle is solved in the conversations?
+        content: `Do you think that the puzzle is solved in the conversations?
 Desired format: <Yes/No>`,
       },
     ],

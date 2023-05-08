@@ -1,5 +1,5 @@
-import { Event, Kind, nip19, Relay } from "npm:nostr-tools";
-import { ensurePublicKey, PrivateKey } from "./keys.ts";
+import { Event, Kind, nip10, nip19, Relay } from "npm:nostr-tools";
+import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
 import { NostrProfile } from "./nostr.ts";
 import {
   accumulateCompletionUsages,
@@ -13,7 +13,7 @@ import {
   createReplyToQuestion,
   createResultAnnounce,
   ReplyToQuestion,
-  validateQuestion,
+  validateMessage,
   ValidQuestion,
 } from "./openai.ts";
 import { createEvent, createReplyEvent, publishEvent } from "./event.ts";
@@ -21,10 +21,10 @@ import { Brand, now } from "./utils.ts";
 
 export async function publishPuzzle(context: {
   relays: Relay[];
-  private_key: PrivateKey;
+  privateKey: PrivateKey;
 }) {
-  const { relays, private_key } = context;
-  const public_key = ensurePublicKey(private_key);
+  const { relays, privateKey } = context;
+  const public_key = ensurePublicKey(privateKey);
   const usages: CompletionUsage[] = [];
 
   /**
@@ -36,7 +36,7 @@ export async function publishPuzzle(context: {
   const intro = await createPuzzleIntro();
   usages.push(...intro.usages);
 
-  const event_puzzle = createEvent(private_key, {
+  const event_puzzle = createEvent(privateKey, {
     content: `${intro.greet}
 
 Q: ${puzzle.problem}
@@ -51,7 +51,7 @@ ${intro.rules}`,
   /**
   /* Subscribe questions to the puzzle thread
   /*/
-  const chats_yes: Chat[] = [];
+  const chat_history: Chat[] = [];
   const events_sub = [event_puzzle.id];
 
   const relay = relays[0];
@@ -83,56 +83,50 @@ ${intro.rules}`,
     },
   });
 
-  async function isDirectMention(event: Event): Promise<boolean> {
-    for (const tag of event.tags) {
-      if (tag[0] !== "e") {
-        continue;
-      }
-      const parent = await relay.get({ ids: [tag[1]] });
-      if (!parent) {
-        console.warn("Parent event not found:", tag[1]);
-        continue;
-      }
-      console.debug("Parent event found:", parent);
-      if (parent.pubkey !== public_key) {
-        console.log("Parent event is not from me:", tag[1]);
-        return false;
-      }
-    }
-    return true;
-  }
-
   for await (const event_recieved of stream) {
-    // Make sure that the reply is too quick
-    if (event_recieved.created_at - event_puzzle.created_at < 10) {
-      console.log("Ignore the event because it's too quick:", event_recieved);
-    }
+    console.log("Checking if the event is targeted to me...");
 
-    // Make sure that we are handling a non-targeted event
-    if (
-      event_recieved.pubkey === public_key || // a message from me, or
-      !(await isDirectMention(event_recieved)) // a message to someone else
-    ) {
-      // If not, just ignore the event
-      console.log("This event is not targeted to me:", event_recieved);
+    if (event_recieved.pubkey === public_key) {
+      console.warn("This event is from me. Skip it...");
       continue;
     }
 
-    // Make sure that the message is not harmful
-    const result_moderation = await applyModeration(
-      event_recieved.content,
-    );
+    if (event_recieved.created_at - event_puzzle.created_at < 10) {
+      console.log("Skip the event because it's too quick...");
+      continue;
+    }
+
+    const tags = nip10.parse(event_recieved);
+
+    if (!tags.root) {
+      console.log("This event just mentions the thread. Skip it...");
+      continue;
+    }
+
+    const tag_parent = tags.reply ?? tags.root;
+    const event_parent = await relay.get({ ids: [tag_parent.id] });
+
+    if (!event_parent) {
+      console.warn("Parent event not found:", tag_parent);
+      continue;
+    }
+
+    // Check if the event is a direct mention
+    if (event_parent.pubkey !== public_key) {
+      console.log("This event is not a direct mention to me. Skip it...");
+      continue;
+    }
+
+    // Make sure the message is not harmful
+    const result_moderation = await applyModeration(event_recieved.content);
     if (!result_moderation.approved) {
-      // If so, just ignore the event (TODO: Reply and report the user)
-      console.warn(
-        "Message has been flagged as harmful:",
-        event_recieved.content,
-      );
+      console.warn("Message has been flagged as harmful. Skip it...");
+      // TODO: Report and ignore the user
       continue;
     }
 
     // Check if the message is a valid question
-    const result_validation = await validateQuestion(
+    const result_validation = await validateMessage(
       puzzle,
       result_moderation.message,
     );
@@ -140,62 +134,44 @@ ${intro.rules}`,
 
     // If not, reply with a validation message
     if (!result_validation.valid) {
-      const reply = createReplyEvent(private_key, event_recieved, relay, {
-        content: result_validation.reply,
+      const reply = createReplyEvent({
+        event: event_recieved,
+        template: { content: result_validation.reply },
+        relay,
+        privateKey,
       });
       updateSub({ newEvent: reply.id });
       publishEvent(relay, reply);
       continue;
     }
 
-    // Retrieve the context if any
-    const parent_tag = event_recieved.tags.find((it) =>
-      it[0] === "e" && it[1] !== event_puzzle.id
-    );
-    const parent = parent_tag
-      ? await relay.get({ ids: [parent_tag[1]] })
-      : null;
-
-    const grandparent_tag = parent?.tags.find((it) =>
-      it[0] === "e" && it[1] !== event_puzzle.id && it[3] === "reply"
-    );
-    const grandparent = grandparent_tag
-      ? await relay.get({
-        ids: [grandparent_tag[1]],
-      })
-      : null;
-
-    const context = parent && grandparent
-      ? [{
-        question: grandparent.content as ValidQuestion,
-        reply: parent.content as ReplyToQuestion,
-      }]
-      : [];
-
     // Create a reply to the question
     const result_reply = await createReplyToQuestion({
       puzzle,
       question: result_validation.question,
-      context,
+      context: chat_history,
     });
-    if (result_reply.yes) {
-      chats_yes.push({
-        question: result_validation.question,
-        reply: result_reply.reply,
-      });
-    }
+    chat_history.push({
+      question: result_validation.question,
+      reply: result_reply.reply,
+    });
     usages.push(...result_reply.usages);
 
-    const reply = createReplyEvent(private_key, event_recieved, relay, {
-      content: result_reply.reply,
+    const reply = createReplyEvent({
+      privateKey,
+      event: event_recieved,
+      relay,
+      template: { content: result_reply.reply },
     });
     updateSub({ newEvent: reply.id });
     publishEvent(relay, reply);
 
     // If the puzzle has been solved, publish the answer and return.
-    if (
-      result_reply.yes && await checkPuzzleSolved({ puzzle, chats: chats_yes })
-    ) {
+    if (await checkPuzzleSolved({ puzzle, chats: chat_history })) {
+      // Unsubscribe from the puzzle thread as soon as possible
+      // to avoid duplicated announcements
+      sub.unsub();
+
       const result_announce = await createResultAnnounce({
         winner: nip19.nprofileEncode({
           pubkey: event_recieved.pubkey,
@@ -211,16 +187,19 @@ ${intro.rules}`,
 
       publishEvent(
         relay,
-        createReplyEvent(private_key, event_puzzle, relay, {
-          content: `${result_announce.intro}
+        createReplyEvent({
+          event: event_puzzle,
+          relay,
+          template: {
+            content: `${result_announce.intro}
 
 A: ${puzzle.answer}
 
-${result_announce.remark}
-(total cost: ⚡${cost})`,
+${result_announce.remark} (total cost: ⚡${cost})`,
+          },
+          privateKey,
         }),
       );
-      sub.unsub();
       return;
     }
   }

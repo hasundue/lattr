@@ -6,11 +6,11 @@ import { now } from "./utils.ts";
 export function subscribeAdmin(opts: {
   admin: PublicKey;
   relays: Relay[];
-  private_key: PrivateKey;
+  privateKey: PrivateKey;
 }) {
-  const { admin, relays, private_key } = opts;
+  const { admin, relays, privateKey } = opts;
   const relay = relays[0];
-  const publicKey = ensurePublicKey(private_key);
+  const publicKey = ensurePublicKey(privateKey);
 
   const sub = relay.sub([
     {
@@ -35,7 +35,7 @@ export function subscribeAdmin(opts: {
     }
 
     if (new RegExp("next puzzle", "i").test(event.content)) {
-      await publishPuzzle({ relays, private_key });
+      await publishPuzzle({ relays, privateKey });
     }
   });
 
