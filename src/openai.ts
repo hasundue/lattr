@@ -214,11 +214,14 @@ export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
       {
         role: "user",
         content: `Create an unique, interesting, and challenging puzzle.
+
 Requirements:
 - The problem should present an unusual scenario or situation with a challenging mystery
-- Readers must find a surprising story behind it, which elegantly solves the mystery without logical inconsistency.
+- Readers must find an unexpected story behind it, which elegantly solves the mystery without significant inconsistency.
 - The last sentence of the problem must be a simple and brief question.
-- Define the fact that participant must discover, which are not mentioned in the problem but in the answer.
+- Do not include hypernatural elements such as magic, time travel, and superpowers.
+- Extract the most important fact that participants must discover, which is not mentioned in the problem but in the answer.
+
 Desired format: 
 { 
   "problem": <problem in 280 characters or less>,
@@ -267,7 +270,7 @@ export async function createPuzzleIntro(): Promise<
   const system_rules: ChatCompletionRequestMessage = {
     role: "system",
     content:
-      `Rule: Your friends may ask you Yes/No questions to gather additional information about the puzzle.`,
+      `Rule: Participants are only allowed to ask you Yes/No questions to gather additional information about the puzzle.`,
   };
 
   const completion_rules = await createChatCompletion({
