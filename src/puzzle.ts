@@ -1,5 +1,5 @@
 import { Event, Kind, nip10, nip19, Relay } from "npm:nostr-tools";
-import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
+import { ensurePublicKey, PrivateKey } from "./keys.ts";
 import { NostrProfile } from "./nostr.ts";
 import {
   accumulateCompletionUsages,
@@ -12,9 +12,7 @@ import {
   createPuzzleIntro,
   createReplyToQuestion,
   createResultAnnounce,
-  ReplyToQuestion,
   validateMessage,
-  ValidQuestion,
 } from "./openai.ts";
 import { createEvent, createReplyEvent, publishEvent } from "./event.ts";
 import { Brand, now } from "./utils.ts";
@@ -98,12 +96,13 @@ ${intro.rules}`,
 
     const tags = nip10.parse(event_recieved);
 
-    if (!tags.root) {
+    const tag_parent = tags.reply ?? tags.root;
+
+    if (!tag_parent) {
       console.log("This event just mentions the thread. Skip it...");
       continue;
     }
 
-    const tag_parent = tags.reply ?? tags.root;
     const event_parent = await relay.get({ ids: [tag_parent.id] });
 
     if (!event_parent) {
@@ -111,7 +110,6 @@ ${intro.rules}`,
       continue;
     }
 
-    // Check if the event is a direct mention
     if (event_parent.pubkey !== public_key) {
       console.log("This event is not a direct mention to me. Skip it...");
       continue;
