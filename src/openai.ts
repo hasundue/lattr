@@ -454,13 +454,13 @@ export async function createReplyToQuestion(args: {
 
   const system_problem: ChatCompletionRequestMessage = {
     role: "system",
-    content: `A puzzle has been presented: "${puzzle.problem}".`,
+    content: `The ongoing puzzle: "${puzzle.problem}".`,
   };
 
   const system_answer: ChatCompletionRequestMessage = {
     role: "system",
     content:
-      `The answer of the puzzle is: "${puzzle.answer}", which is not revealed to the participants.`,
+      `The answer: "${puzzle.answer}" (not revealed to the participants).`,
   };
 
   const chat_context = context?.map((chat): ChatCompletionRequestMessage[] => [
@@ -485,12 +485,13 @@ export async function createReplyToQuestion(args: {
       system_init,
       system_problem,
       system_answer,
-      ...chat_context,
       {
         role: "system",
-        content: `Reply to the following message.
+        content: `Reply to the following messages.
+Requirement: Do not reveal additional information about the puzzle.
 Desired format: <Yes/No>, <an encouraging comment in 2-5 words>`,
       },
+      ...chat_context,
       user_question,
     ],
     temperature: 0,
