@@ -251,9 +251,8 @@ export async function createIntroduction(): Promise<
 
   const user_preface: ChatCompletionRequestMessage = {
     role: "user",
-    content:
-      `Create a short preface to introduce your puzzle to your friends.
-Desired format: <greeting in 10 words or less> <introductory phrase in 10 words or less>:`
+    content: `Create a short preface to introduce your puzzle to your friends.
+Desired format: <greeting in 10 words or less> <introductory phrase in 10 words or less>:`,
   };
 
   const completion_intro = await createChatCompletion({
@@ -275,7 +274,8 @@ Desired format: <greeting in 10 words or less> <introductory phrase in 10 words 
       assistant_intro,
       {
         role: "user",
-        content: `Create a sentence that request your friends to ask you Yes/No questions to solve the puzzle in 10 words or less.`,
+        content:
+          `Create a sentence that request your friends to ask you Yes/No questions to solve the puzzle in 10 words or less.`,
       },
     ],
     temperature: 1,
@@ -491,8 +491,9 @@ export async function createReplyToQuestion(args: {
       system_rules,
       {
         role: "system",
-        content: `Reply to the following messages about the puzzle.
-Desired format: <Yes/No>, <auxiliary verbs><./!>`,
+        content:
+          `Reply to the following messages about the puzzle in a single word.
+Desired format: <Yes/No><./!>`,
       },
       ...chat_context,
       user_question,
@@ -504,6 +505,13 @@ Desired format: <Yes/No>, <auxiliary verbs><./!>`,
   const assistant_reply = completion_reply.choices[0].message;
   const reply = assistant_reply.content;
 
+  const user_keyfact: ChatCompletionRequestMessage = {
+    role: "user",
+    content:
+      `Does the conversation above suggest that the participants understand the following fact?: ${puzzle.keyfact}
+Must-follow format: <Yes/No>.`,
+  };
+
   const completion_solved = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
@@ -512,55 +520,43 @@ Desired format: <Yes/No>, <auxiliary verbs><./!>`,
       ...chat_context,
       user_question,
       assistant_reply,
-      {
-        role: "user",
-        content:
-          `Does the conversation above suggest that the participants understand the following fact?: ${puzzle.keyfact}
-Desired format: Yes/No`,
-      },
+      user_keyfact,
     ],
+    stop: [".", ","],
     temperature: 0,
   });
   usages.push(completion_solved.usage);
-
-  const solved = !completion_solved.choices[0].message.content.startsWith("No");
+  const solved = completion_solved.choices[0].message.content.startsWith("Yes");
 
   // Create an additional comment to the reply.
   // If the puzzle is solved, add a sentence to praise them in the reply.
   // If not, add a sentence to encourage them to ask another question.
-  const completion_comment = solved
-    ? await createChatCompletion({
-      model: "gpt-3.5",
-      messages: [
-        system_init,
-        system_problem,
-        ...chat_context,
-        user_question,
-        assistant_reply,
-        {
-          role: "user",
-          content:
-            `Create a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.`,
-        },
-      ],
-      temperature: 1,
-    })
-    : await createChatCompletion({
-      model: "gpt-3.5",
-      messages: [
-        system_init,
-        system_problem,
-        ...chat_context,
-        user_question,
-        assistant_reply,
-        {
-          role: "user",
-          content:
-            `Create a brief sentence that encourages them, in 10 words or less.`,
-        },
-      ],
-      temperature: 1,
-    });
+  const user_comment: ChatCompletionRequestMessage = solved
+    ? {
+      role: "user",
+      content:
+        `Create a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.`,
+    }
+    : {
+      role: "user",
+      content:
+        `Create an encouraging phrase to evaluate the question, in 5 words or less.
+
+${reply} `,
+    };
+
+  const completion_comment = await createChatCompletion({
+    model: "gpt-3.5",
+    messages: [
+      system_init,
+      system_problem,
+      ...chat_context,
+      user_question,
+      assistant_reply,
+      user_comment,
+    ],
+    temperature: 1,
+  });
   usages.push(completion_comment.usage);
   const comment = completion_comment.choices[0].message.content;
 
