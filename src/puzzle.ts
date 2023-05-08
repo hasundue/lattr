@@ -8,7 +8,7 @@ import {
   Chat,
   CompletionUsage,
   createPuzzle,
-  createPuzzleIntro,
+  createIntroduction,
   createReplyToQuestion,
   createResultAnnounce,
   validateMessage,
@@ -30,15 +30,15 @@ export async function publishPuzzle(context: {
   const puzzle = await createPuzzle();
   usages.push(...puzzle.usages);
 
-  const intro = await createPuzzleIntro();
+  const intro = await createIntroduction();
   usages.push(...intro.usages);
 
   const event_puzzle = createEvent(privateKey, {
-    content: `${intro.greet}
+    content: `${intro.preface}
 
 Q: ${puzzle.problem}
 
-${intro.rules}`,
+${intro.request}`,
   });
 
   for (const relay of context.relays) {

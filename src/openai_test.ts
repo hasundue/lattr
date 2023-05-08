@@ -7,8 +7,8 @@ import {
 import { NostrProfile } from "./nostr.ts";
 import {
   ApprovedMessage,
+  createIntroduction,
   createPuzzle,
-  createPuzzleIntro,
   createReplyToQuestion,
   createResultAnnounce,
   Puzzle,
@@ -40,11 +40,11 @@ const puzzle2: Puzzle = {
   keyfact: "The name of the horse is Friday.",
 };
 
-describe("createIntro", () => {
+describe("createIntroduction", () => {
   it("create a random introduction of a puzzle", async () => {
-    const res = await createPuzzleIntro();
-    assert(res.greet);
-    assert(res.rules);
+    const res = await createIntroduction();
+    assert(res.preface);
+    assert(res.request);
   });
 });
 

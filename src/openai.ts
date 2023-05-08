@@ -202,7 +202,7 @@ export type Puzzle = {
 };
 
 export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
-  console.log("Asking GPT-4 for a puzzle...\n");
+  console.log("Asking ChatGPT for a puzzle...\n");
 
   const data = await createChatCompletion({
     model: "gpt-4",
@@ -213,13 +213,12 @@ export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
       },
       {
         role: "user",
-        content: `Create an unique, interesting, and challenging puzzle.
+        content: `Create an unique and interesting puzzle.
 
 Requirements:
-- The problem should present an unusual scenario or situation with a challenging mystery
+- The problem should present an unusual scenario or situation with a challenging mystery.
 - Readers must find an unexpected story behind it, which elegantly solves the mystery without significant inconsistency.
 - The last sentence of the problem must be a simple and brief question.
-- Do not include hypernatural elements such as magic, time travel, and superpowers.
 - Extract the most important fact that participants must discover, which is not mentioned in the problem but in the answer.
 
 Desired format: 
@@ -238,8 +237,8 @@ Desired format:
   return { ...puzzle, usages: [data.usage] };
 }
 
-export async function createPuzzleIntro(): Promise<
-  { greet: string; rules: string } & CompletionResult
+export async function createIntroduction(): Promise<
+  { preface: string; request: string } & CompletionResult
 > {
   console.log("Asking GPT-3.5 to create an introduction...\n");
 
@@ -250,49 +249,42 @@ export async function createPuzzleIntro(): Promise<
     content: "You are sharing a puzzle you created with your friends.",
   };
 
-  const user_intro: ChatCompletionRequestMessage = {
+  const user_preface: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Create a brief introduction for the puzzle, started with some greeting words, in 50 characters or less. Do not include any contents of a puzzle.`,
+      `Create a short preface to introduce your puzzle to your friends.
+Desired format: <greeting in 10 words or less> <introductory phrase in 10 words or less>:`
   };
 
   const completion_intro = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
       system_init,
-      user_intro,
+      user_preface,
     ],
     temperature: 1,
   });
   usages.push(completion_intro.usage);
   const assistant_intro = completion_intro.choices[0].message;
 
-  const system_rules: ChatCompletionRequestMessage = {
-    role: "system",
-    content:
-      `Rule: Participants are only allowed to ask you Yes/No questions to gather additional information about the puzzle.`,
-  };
-
-  const completion_rules = await createChatCompletion({
+  const completion_request = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
       system_init,
-      user_intro,
+      user_preface,
       assistant_intro,
-      system_rules,
       {
         role: "user",
-        content:
-          `Explain the rule above briefly and encourage your friends in 140 characters or less, without hashtags or emojis. Do not include contents of a puzzle.`,
+        content: `Create a sentence that request your friends to ask you Yes/No questions to solve the puzzle in 10 words or less.`,
       },
     ],
     temperature: 1,
   });
-  usages.push(completion_rules.usage);
+  usages.push(completion_request.usage);
 
   return {
-    greet: assistant_intro.content,
-    rules: completion_rules.choices[0].message.content,
+    preface: assistant_intro.content,
+    request: completion_request.choices[0].message.content,
     usages,
   };
 }
@@ -355,7 +347,6 @@ export async function validateMessage(
       system_question,
       {
         role: "user",
-        // content: `Is the participant trying to solve the puzzle?
         content:
           `Do you think the message is from a participant who is trying to solve the puzzle?
 Desired format: Yes/No`,
@@ -366,7 +357,7 @@ Desired format: Yes/No`,
   usages.push(completion_related.usage);
 
   // If not, create a reply saying that the question is not related to the puzzle.
-  if (!completion_related.choices[0].message.content.startsWith("Yes")) {
+  if (completion_related.choices[0].message.content.startsWith("No")) {
     const completion_reply = await createChatCompletion({
       model: "gpt-3.5",
       messages: [
@@ -398,7 +389,7 @@ Desired format: Yes/No`,
       {
         role: "user",
         content:
-          `Does the message have a grammatical structure that allows answering it with affirmation or negation?
+          `Does the message allow you to answer it with affirmation or negation, technically?
 Desired format: Yes/No`,
       },
     ],
