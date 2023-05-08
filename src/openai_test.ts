@@ -41,8 +41,13 @@ const puzzle2: Puzzle = {
 };
 
 describe("createIntroduction", () => {
-  it("create a random introduction of a puzzle", async () => {
-    const res = await createIntroduction();
+  it("create a random introduction of a puzzle1", async () => {
+    const res = await createIntroduction({ puzzle: puzzle1 });
+    assert(res.preface);
+    assert(res.request);
+  });
+  it("create a random introduction of a puzzle2", async () => {
+    const res = await createIntroduction({ puzzle: puzzle2 });
     assert(res.preface);
     assert(res.request);
   });

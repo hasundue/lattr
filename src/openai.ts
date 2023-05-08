@@ -237,7 +237,9 @@ Desired format:
   return { ...puzzle, usages: [data.usage] };
 }
 
-export async function createIntroduction(): Promise<
+export async function createIntroduction(args: {
+  puzzle: Puzzle;
+}): Promise<
   { preface: string; request: string } & CompletionResult
 > {
   console.log("Asking GPT-3.5 to create an introduction...\n");
@@ -246,13 +248,15 @@ export async function createIntroduction(): Promise<
 
   const system_init: ChatCompletionRequestMessage = {
     role: "system",
-    content: "You are sharing a puzzle you created with your friends.",
+    content:
+      `You are sharing the following puzzle you created with your friends: ${args.puzzle.problem}`,
   };
 
   const user_preface: ChatCompletionRequestMessage = {
     role: "user",
-    content: `Create a short preface to introduce your puzzle to your friends.
-Desired format: <greeting in 10 words or less> <introductory phrase in 10 words or less>:`,
+    content:
+      `Create a short preface to introduce your puzzle to your friends. Do not include the content of the puzzle.
+Desired format: <greeting in 10 words or less> <an introductory phrase in 10 words or less>`,
   };
 
   const completion_intro = await createChatCompletion({

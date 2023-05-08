@@ -30,7 +30,7 @@ export async function publishPuzzle(context: {
   const puzzle = await createPuzzle();
   usages.push(...puzzle.usages);
 
-  const intro = await createIntroduction();
+  const intro = await createIntroduction({ puzzle });
   usages.push(...intro.usages);
 
   const event_puzzle = createEvent(privateKey, {
