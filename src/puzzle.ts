@@ -6,7 +6,6 @@ import {
   AccumulatedCompletionUsage,
   applyModeration,
   Chat,
-  checkPuzzleSolved,
   CompletionUsage,
   createPuzzle,
   createPuzzleIntro,
@@ -165,7 +164,7 @@ ${intro.rules}`,
     publishEvent(relay, reply);
 
     // If the puzzle has been solved, publish the answer and return.
-    if (await checkPuzzleSolved({ puzzle, chats: chat_history })) {
+    if (result_reply.solved) {
       // Unsubscribe from the puzzle thread as soon as possible
       // to avoid duplicated announcements
       sub.unsub();

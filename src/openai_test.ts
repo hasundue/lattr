@@ -7,7 +7,6 @@ import {
 import { NostrProfile } from "./nostr.ts";
 import {
   ApprovedMessage,
-  checkPuzzleSolved,
   createPuzzle,
   createPuzzleIntro,
   createReplyToQuestion,
@@ -94,14 +93,16 @@ describe("createReplyToQuestion", () => {
         puzzle: puzzle1,
         question: t.name as ValidQuestion,
       });
-      assertFalse(res.yes);
+      assert(res.reply.startsWith("No"));
+      assertFalse(res.solved);
     });
     it("Did he timeleap?", async (t) => {
       const res = await createReplyToQuestion({
         puzzle: puzzle2,
         question: t.name as ValidQuestion,
       });
-      assertFalse(res.yes);
+      assertFalse(res.reply.startsWith("Yes"));
+      assertFalse(res.solved);
     });
   });
   describe("should return Yes", () => {
@@ -110,7 +111,8 @@ describe("createReplyToQuestion", () => {
         puzzle: puzzle1,
         question: t.name as ValidQuestion,
       });
-      assert(res.yes);
+      assert(res.reply.startsWith("Yes"));
+      assertFalse(res.solved);
     });
     it("Are they bees?", async (t) => {
       const res = await createReplyToQuestion({
@@ -123,46 +125,17 @@ describe("createReplyToQuestion", () => {
           },
         ],
       });
-      assert(res.yes);
+      assert(res.reply.startsWith("Yes"));
+      assert(res.solved);
     });
     it("He is a beekeeper!", async (t) => {
       const res = await createReplyToQuestion({
         puzzle: puzzle1,
         question: t.name as ValidQuestion,
       });
-      assert(res.yes);
+      assert(res.reply.startsWith("Yes"));
+      assert(res.solved);
     });
-  });
-});
-
-describe("checkPuzzleSolved", () => {
-  it("should return false", async () => {
-    const res = await checkPuzzleSolved({
-      puzzle: puzzle1,
-      chats: [
-        {
-          question: "Does he stay there for his work?" as ValidQuestion,
-          reply: "Yes!" as ReplyToQuestion,
-        },
-      ],
-    });
-    assertFalse(res);
-  });
-  it("should return true", async () => {
-    const res = await checkPuzzleSolved({
-      puzzle: puzzle1,
-      chats: [
-        {
-          question: "Does he stay there for his work?" as ValidQuestion,
-          reply: "Yes." as ReplyToQuestion,
-        },
-        {
-          question: "Is he a beekeeper?" as ValidQuestion,
-          reply: "Yes." as ReplyToQuestion,
-        },
-      ],
-    });
-    assert(res);
   });
 });
 

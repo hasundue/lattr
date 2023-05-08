@@ -433,11 +433,16 @@ Desired format: Yes/No`,
   return { valid: true, question: question as ValidQuestion, usages };
 }
 
+export type Chat = {
+  question: ValidQuestion;
+  reply: ReplyToQuestion;
+};
+
 export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
 
 export type CreateReplyToQuestionResult = {
-  yes: boolean;
   reply: ReplyToQuestion;
+  solved: boolean;
 } & CompletionResult;
 
 export async function createReplyToQuestion(args: {
@@ -462,8 +467,12 @@ export async function createReplyToQuestion(args: {
 
   const system_answer: ChatCompletionRequestMessage = {
     role: "system",
-    content:
-      `The answer: "${puzzle.answer}" (not revealed to the participants).`,
+    content: `The answer: "${puzzle.answer}"`,
+  };
+
+  const system_rules: ChatCompletionRequestMessage = {
+    role: "system",
+    content: `Participants ask you Yes/No questions to find the answer.`,
   };
 
   const chat_context = context?.map((chat): ChatCompletionRequestMessage[] => [
@@ -488,11 +497,11 @@ export async function createReplyToQuestion(args: {
       system_init,
       system_problem,
       system_answer,
+      system_rules,
       {
         role: "system",
-        content: `Reply to the following messages.
-Requirement: Do not reveal additional information about the puzzle.
-Desired format: <Yes/No>, <an encouraging comment in 2-5 words>`,
+        content: `Reply to the following messages about the puzzle.
+Desired format: <Yes/No>, <auxiliary verbs><./!>`,
       },
       ...chat_context,
       user_question,
@@ -501,65 +510,74 @@ Desired format: <Yes/No>, <an encouraging comment in 2-5 words>`,
   });
   usages.push(completion_reply.usage);
 
-  const reply = completion_reply.choices[0].message.content;
-  const yes = reply.startsWith("Yes");
-
-  return {
-    yes,
-    reply: reply as ReplyToQuestion,
-    usages,
-  };
-}
-
-export type Chat = {
-  question: ValidQuestion;
-  reply: ReplyToQuestion;
-};
-
-export async function checkPuzzleSolved(args: {
-  puzzle: Puzzle;
-  chats: Chat[];
-}): Promise<boolean> {
-  const { puzzle, chats } = args;
-
-  const system_init: ChatCompletionRequestMessage = {
-    role: "system",
-    content: "You are an assistant of an online puzzle session.",
-  };
-
-  const system_keyfact: ChatCompletionRequestMessage = {
-    role: "system",
-    content:
-      `Rule: The puzzle is considered to be solved when the following key fact is revealed through conversations: ${puzzle.keyfact}`,
-  };
-
-  const system_chats = chats.map((chat): ChatCompletionRequestMessage[] => [
-    {
-      role: "system",
-      content: `A participant: "${chat.question}"`,
-    },
-    {
-      role: "system",
-      content: `You: "${chat.reply}"`,
-    },
-  ]).flat();
+  const assistant_reply = completion_reply.choices[0].message;
+  const reply = assistant_reply.content;
 
   const completion_solved = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
       system_init,
-      system_keyfact,
-      ...system_chats,
+      system_problem,
+      ...chat_context,
+      user_question,
+      assistant_reply,
       {
         role: "user",
-        content: `Do you think that the puzzle is solved in the conversations?
-Desired format: <Yes/No>`,
+        content:
+          `Does the conversation above suggest that the participants understand the following fact?: ${puzzle.keyfact}
+Desired format: Yes/No`,
       },
     ],
     temperature: 0,
   });
+  usages.push(completion_solved.usage);
 
-  return completion_solved.choices[0].message.content.startsWith("Yes");
+  const solved = !completion_solved.choices[0].message.content.startsWith("No");
+
+  // Create an additional comment to the reply.
+  // If the puzzle is solved, add a sentence to praise them in the reply.
+  // If not, add a sentence to encourage them to ask another question.
+  const completion_comment = solved
+    ? await createChatCompletion({
+      model: "gpt-3.5",
+      messages: [
+        system_init,
+        system_problem,
+        ...chat_context,
+        user_question,
+        assistant_reply,
+        {
+          role: "user",
+          content:
+            `Create a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.`,
+        },
+      ],
+      temperature: 1,
+    })
+    : await createChatCompletion({
+      model: "gpt-3.5",
+      messages: [
+        system_init,
+        system_problem,
+        ...chat_context,
+        user_question,
+        assistant_reply,
+        {
+          role: "user",
+          content:
+            `Create a brief sentence that encourages them, in 10 words or less.`,
+        },
+      ],
+      temperature: 1,
+    });
+  usages.push(completion_comment.usage);
+  const comment = completion_comment.choices[0].message.content;
+
+  return {
+    reply: `${reply} ${comment}` as ReplyToQuestion,
+    solved,
+    usages,
+  };
 }
 
 export type ResultAnnounce = {
