@@ -57,10 +57,10 @@ export function createEvent(
  * @returns The event that we're publishing.
  */
 export function createReplyEvent(args: {
-  event: Event,
-  relay: Relay,
-  template: EventTemplateInit,
-  privateKey: PrivateKey,
+  event: Event;
+  relay: Relay;
+  template: EventTemplateInit;
+  privateKey: PrivateKey;
 }): Event {
   const { event, relay, template, privateKey } = args;
   const publicKey = ensurePublicKey(privateKey);
@@ -75,19 +75,24 @@ export function createReplyEvent(args: {
 
   const tags = nip10.parse(event);
 
-  // The marker for the event we're publishing
-  const marker = !tags.root && !tags.reply ? "root" : "reply";
+  // A marker for the event we're publishing
+  const marker = (tags.root || tags.reply) ? "reply" : "root";
 
-  // The event we're publishing
-  const ref = ["e", event.id, relay.url, marker];
+  // A tag for the event we're publishing
+  const tag_reply = ["e", event.id, relay.url, marker];
 
-  // The root event, if any
-  const root = tags.root
-    ? event.tags.find((tag) => tag[1] === tags.root?.id)
+  // A tag for the root event
+  const tag_root = tags.root
+    ? [
+      "e",
+      tags.root.id,
+      tags.root.relays ? tags.root.relays[0] : relay.url,
+      "root",
+    ]
     : undefined;
 
   // Create "e" tags
-  const es = root ? [root, ref] : [ref];
+  const es = tag_root ? [tag_root, tag_reply] : [tag_reply];
 
   return createEvent(privateKey, {
     kind: template.kind,
