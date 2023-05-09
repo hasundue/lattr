@@ -353,10 +353,11 @@ export async function validateMessage(
         role: "user",
         content:
           `Do you think the message is from a participant who is trying to solve the puzzle?
-Desired format: Yes/No`,
+Desired format: <Yes/No>.`,
       },
     ],
     temperature: 0,
+    stop: [",", "."],
   });
   usages.push(completion_related.usage);
 
@@ -394,14 +395,15 @@ Desired format: Yes/No`,
         role: "user",
         content:
           `Does the message allow you to answer it with affirmation or negation, technically?
-Desired format: Yes/No`,
+Desired format: <Yes/No>.`,
       },
     ],
     temperature: 0,
+    stop: [",", "."],
   });
   usages.push(completion_yesno.usage);
 
-  if (!completion_yesno.choices[0].message.content.startsWith("Yes")) {
+  if (completion_yesno.choices[0].message.content.startsWith("No")) {
     const completion_reply = await createChatCompletion({
       model: "gpt-3.5",
       messages: [
