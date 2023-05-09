@@ -213,12 +213,11 @@ export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
       },
       {
         role: "user",
-        content: `Create an unique, interesting, and challenging puzzle.
+        content: `Create an unique and interesting puzzle.
 
 Requirements:
-- The problem should present an unusual scenario or situation with a curious mystery.
+- The problem should present an unusual scenario or situation with a challenging mystery.
 - Readers must find an unexpected story behind it, which elegantly solves the mystery without significant inconsistency.
-- The puzzle should require creative thinking more than logical reasoning.
 - The last sentence of the problem must be a simple and brief question.
 - Extract the most important fact that participants must discover, which is not mentioned in the problem but in the answer.
 
