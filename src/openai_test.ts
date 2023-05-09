@@ -40,6 +40,15 @@ const puzzle2: Puzzle = {
   keyfact: "The name of the horse is Friday.",
 };
 
+const puzzle3: Puzzle = {
+  problem:
+    "A prestigious art gallery has unveiled a painting from an unknown artist. Observers notice that the painting's layout seems to go beyond the canvas frame, as if the art continued beyond the boundary. What's the most peculiar aspect of the painting?",
+  answer:
+    "The painting is a 3D optical illusion; it appears to continue outward beyond its frame, merging with the surrounding environment. The unknown artist cleverly incorporated light, shadow, and perspective to achieve this effect, leaving observers intrigued.",
+  keyfact:
+    "The painting is a 3D optical illusion.",
+};
+
 describe("createIntroduction", () => {
   it("create a random introduction of a puzzle1", async () => {
     const res = await createIntroduction({ puzzle: puzzle1 });
@@ -107,6 +116,14 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assertFalse(res.reply.startsWith("Yes"));
+      assertFalse(res.solved);
+    });
+    it("Is it drawn by a blind artist?", async (t) => {
+      const res = await createReplyToQuestion({
+        puzzle: puzzle3,
+        question: t.name as ValidQuestion,
+      });
+      assert(res.reply.startsWith("No"));
       assertFalse(res.solved);
     });
   });

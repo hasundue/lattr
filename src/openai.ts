@@ -512,8 +512,10 @@ Desired format: <Yes/No><./!>`,
   const user_keyfact: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Does the conversation above suggest that the participants understand the following fact?: ${puzzle.keyfact}
-Must-follow format: <Yes/No>.`,
+      `Does the conversation above suggest the participants has found that ${
+        puzzle.keyfact.slice(0, -1)
+      }?
+Desired format: <Yes/No>.`,
   };
 
   const completion_solved = await createChatCompletion({
