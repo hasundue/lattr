@@ -1,4 +1,5 @@
 import "https://deno.land/std@0.185.0/dotenv/load.ts";
+import { retry } from "https://deno.land/std@0.185.0/async/mod.ts";
 import {
   ChatCompletionRequestMessage,
   Configuration,
@@ -97,10 +98,11 @@ async function createChatCompletion(
   for (const message of request.messages) {
     console.debug(">", message.content, "\n");
   }
-  const { data } = await openai.createChatCompletion({
-    ...request,
-    model: request.model === "gpt-4" ? "gpt-4-0314" : "gpt-3.5-turbo-0301",
-  });
+  const { data } = await retry(() =>
+    openai.createChatCompletion({
+      ...request,
+      model: request.model === "gpt-4" ? "gpt-4-0314" : "gpt-3.5-turbo-0301",
+    }), { maxAttempts: 2 });
 
   for (const choice of data.choices) {
     if (!choice.message) {
