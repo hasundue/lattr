@@ -60,13 +60,25 @@ for (const relay of relays) {
     }),
   );
 
-  // Publish the contact list (follow the owner)
+  // Publish the contact list (NIP-02)
   publishEvent(
     relay,
     createEvent(privateKey, {
       kind: Kind.Contacts,
       tags: [
         ["p", public_key_owner, relay_main.url, "chiezo"],
+      ],
+      content: "",
+    }),
+  );
+
+  // Publish a relay list (NIP-65)
+  publishEvent(
+    relay,
+    createEvent(privateKey, {
+      kind: Kind.RelayList,
+      tags: [
+        ["r", relay_main.url, "read", "write"],
       ],
       content: "",
     }),
