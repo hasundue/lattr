@@ -634,3 +634,33 @@ export async function createResultAnnounce(args: {
     usages,
   };
 }
+
+export async function createCloseAnnounce(): Promise<string> {
+  console.log(
+    "Asking ChagGPT to create an announce for closing the session...\n",
+  );
+
+  const system_init: ChatCompletionRequestMessage = {
+    role: "system",
+    content: "You are an assistant of an online puzzle session.",
+  };
+
+  const user_close: ChatCompletionRequestMessage = {
+    role: "user",
+    content:
+      `Create a message to announce the session is closed due to an unexpected trouble, in 140 characters or less.
+
+Example: This puzzle has been closed due to an unexpected trouble. Sorry for the inconvenience.`,
+  };
+
+  const completion_close = await createChatCompletion({
+    model: "gpt-3.5",
+    messages: [
+      system_init,
+      user_close,
+    ],
+    temperature: 1,
+  });
+
+  return completion_close.choices[0].message.content;
+}

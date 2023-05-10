@@ -7,6 +7,7 @@ import {
 import { NostrProfile } from "./nostr.ts";
 import {
   ApprovedMessage,
+  createCloseAnnounce,
   createIntroduction,
   createPuzzle,
   createReplyToQuestion,
@@ -170,6 +171,13 @@ describe("createResultAnnounce", () => {
     const res = await createResultAnnounce({
       winner: "nprofile1xxxxxxxxxxx" as NostrProfile,
     });
+    assert(res);
+  });
+});
+
+describe("createCloseAnnounce", () => {
+  it("create a random announcement of a close", async () => {
+    const res = await createCloseAnnounce();
     assert(res);
   });
 });

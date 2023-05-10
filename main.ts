@@ -1,6 +1,7 @@
 import { signal } from "https://deno.land/std@0.185.0/signal/mod.ts";
 import { Kind, nip19, relayInit } from "npm:nostr-tools";
 import {
+  closeUnsolvedPuzzles,
   createEvent,
   ensurePrivateKey,
   PublicKey,
@@ -71,6 +72,9 @@ for (const relay of relays) {
     }),
   );
 }
+
+// Publish closing announcements for all terminated and unsolved puzzles
+closeUnsolvedPuzzles({ relay: relay_main, privateKey });
 
 // resumeChats({
 //   relay: relays[0],

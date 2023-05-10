@@ -1,16 +1,18 @@
 import { Event, Kind, nip10, nip19, Relay } from "npm:nostr-tools";
 import { ensurePublicKey, PrivateKey } from "./keys.ts";
-import { NostrProfile } from "./nostr.ts";
+import { createSubReadableStream, NostrProfile } from "./nostr.ts";
 import {
   accumulateCompletionUsages,
   AccumulatedCompletionUsage,
   applyModeration,
   Chat,
   CompletionUsage,
-  createPuzzle,
+  createCloseAnnounce,
   createIntroduction,
+  createPuzzle,
   createReplyToQuestion,
   createResultAnnounce,
+  Puzzle,
   validateMessage,
 } from "./openai.ts";
 import { createEvent, createReplyEvent, publishEvent } from "./event.ts";
@@ -21,19 +23,18 @@ export async function publishPuzzle(context: {
   privateKey: PrivateKey;
 }) {
   const { relays, privateKey } = context;
-  const public_key = ensurePublicKey(privateKey);
-  const usages: CompletionUsage[] = [];
+  const usages_puzzle: CompletionUsage[] = [];
 
   /**
    * Publish a puzzle
    */
   const puzzle = await createPuzzle();
-  usages.push(...puzzle.usages);
+  usages_puzzle.push(...puzzle.usages);
 
   const intro = await createIntroduction({ puzzle });
-  usages.push(...intro.usages);
+  usages_puzzle.push(...intro.usages);
 
-  const event_puzzle = createEvent(privateKey, {
+  const event = createEvent(privateKey, {
     content: `${intro.preface}
 
 Q: ${puzzle.problem}
@@ -42,12 +43,28 @@ ${intro.request}`,
   });
 
   for (const relay of context.relays) {
-    publishEvent(relay, event_puzzle);
+    publishEvent(relay, event);
   }
 
-  /**
-  /* Subscribe questions to the puzzle thread
-  /*/
+  // Subscribe questions to the puzzle thread
+  await subscribePuzzle({ puzzle, event, usages_puzzle, relays, privateKey });
+}
+
+/**
+/* Subscribe questions to the puzzle thread
+/*/
+export async function subscribePuzzle(context: {
+  puzzle: Puzzle;
+  event: Event;
+  usages_puzzle: CompletionUsage[];
+  relays: Relay[];
+  privateKey: PrivateKey;
+}) {
+  const { puzzle, relays, privateKey } = context;
+  const event_puzzle = context.event;
+  const publicKey = ensurePublicKey(privateKey);
+
+  const usages = context.usages_puzzle;
   const chat_history: Chat[] = [];
   const events_sub = [event_puzzle.id];
 
@@ -61,7 +78,7 @@ ${intro.request}`,
     const filter = {
       kinds: [Kind.Text],
       "#e": events_sub,
-      "#p": [public_key],
+      "#p": [publicKey],
       since: now(),
     };
     sub.sub([filter], {});
@@ -83,7 +100,7 @@ ${intro.request}`,
   for await (const event_recieved of stream) {
     console.log("Checking if the event is targeted to me...");
 
-    if (event_recieved.pubkey === public_key) {
+    if (event_recieved.pubkey === publicKey) {
       console.warn("This event is from me. Skip it...");
       continue;
     }
@@ -109,7 +126,7 @@ ${intro.request}`,
       continue;
     }
 
-    if (event_parent.pubkey !== public_key) {
+    if (event_parent.pubkey !== publicKey) {
       console.log("This event is not a direct mention to me. Skip it...");
       continue;
     }
@@ -200,6 +217,91 @@ ${result_announce.remark} (total cost: ⚡${cost})`,
       return;
     }
   }
+}
+
+export async function closeUnsolvedPuzzles(context: {
+  relay: Relay;
+  privateKey: PrivateKey;
+}): Promise<void> {
+  console.log("Looking for unsolved puzzles...");
+
+  const { relay, privateKey } = context;
+  const publicKey = ensurePublicKey(privateKey);
+
+  // Retrieve all kinds of our notes since no better way
+  const sub = relay.sub([{
+    kinds: [Kind.Text],
+    authors: [publicKey],
+    until: now(),
+    limit: 1000,
+  }]);
+
+  const puzzles_unsolved: Event[] = [];
+
+  // A readable stream of events
+  const stream = createSubReadableStream(sub, { realtime: false });
+
+  for await (const event of stream) {
+    const tags = nip10.parse(event);
+
+    // Skip if the event is a reply to a participant
+    if (tags.root || tags.reply) continue;
+
+    // TODO: Check if the event is a puzzle (we have to do nothing for now)
+
+    // Retrieve all our replies to the puzzle
+    const replies = await relay.list([{
+      authors: [publicKey],
+      "#e": [event.id],
+    }]);
+
+    // Check if we have already solved the puzzle. Kinda adhoc but should be fine.
+    const solved = replies.some((reply) =>
+      reply.content.includes("nprofile1") &&
+      reply.content.includes("A: ") &&
+      reply.content.includes("⚡")
+    );
+
+    // Puzzle solved. We should leave it as is...
+    if (solved) {
+      console.debug("Puzzle already solved:", event.id);
+      continue;
+    }
+
+    // Our direct reply to the root event should be the close announcement
+    const closed = replies.some((reply) => {
+      const tags = nip10.parse(reply);
+      return tags.root && !tags.reply;
+    });
+
+    // Puzzle is already closed
+    if (closed) {
+      console.debug("Puzzle already closed:", event.id);
+      continue;
+    }
+
+    console.log("Unsolved puzzle found:", event);
+    puzzles_unsolved.push(event);
+
+    console.log(event.tags);
+
+    console.log("Publishing a reply to announce that it is closed..");
+    publishEvent(
+      relay,
+      createReplyEvent({
+        event,
+        relay,
+        template: { content: await createCloseAnnounce() },
+        privateKey,
+      }),
+    );
+  }
+
+  console.log(
+    puzzles_unsolved.length > 0
+      ? `Published close announcements for ${puzzles_unsolved.length} puzzles.`
+      : "No unsolved puzzles found.",
+  );
 }
 
 const COST_GPT_3_5 = 0.002 as const; // USD / 1K tokens
