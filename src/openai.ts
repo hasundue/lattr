@@ -545,12 +545,14 @@ Desired format: <Yes/No>.`,
     ? {
       role: "user",
       content:
-        `Create a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.`,
+        `Add a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.
+
+${reply} `,
     }
     : {
       role: "user",
       content:
-        `Create an encouraging phrase to evaluate the question, in 5 words or less.
+        `Add an encouraging phrase that evaluates the question, in 5 words or less.
 
 ${reply} `,
     };
