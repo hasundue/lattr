@@ -244,7 +244,7 @@ export async function createIntroduction(args: {
 }): Promise<
   { preface: string; request: string } & CompletionResult
 > {
-  console.log("Asking GPT-3.5 to create an introduction...\n");
+  console.log("Asking ChatGPT to create an introduction...\n");
 
   const usages: CompletionUsage[] = [];
 
@@ -318,7 +318,7 @@ export async function validateMessage(
   puzzle: Puzzle,
   question: ApprovedMessage,
 ): Promise<ValidateQuestionResult> {
-  console.log("Asking GPT-3.5 to validate the message...\n");
+  console.log("Asking ChatGPT to validate the message...\n");
 
   const usages: CompletionUsage[] = [];
 
@@ -343,7 +343,7 @@ export async function validateMessage(
     content: `Someone has sent you a message: "${question}"`,
   };
 
-  // Ask GPT-4 if the question is related to the puzzle.
+  // Ask ChatGPT if the question is related to the puzzle.
   const completion_related = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
@@ -388,7 +388,7 @@ Desired format: <Yes/No>.`,
     };
   }
 
-  // Ask GPT-3.5 if the question is a Yes/No question.
+  // Ask ChatGPT if the question is a Yes/No question.
   const completion_yesno = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
