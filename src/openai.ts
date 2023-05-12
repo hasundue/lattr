@@ -511,7 +511,7 @@ Desired format: <Yes/No><./!>`,
   usages.push(completion_reply.usage);
 
   const assistant_reply = completion_reply.choices[0].message;
-  const reply = assistant_reply.content;
+  let reply = assistant_reply.content;
 
   const user_keyfact: ChatCompletionRequestMessage = {
     role: "user",
@@ -538,45 +538,44 @@ Desired format: <Yes/No>.`,
   usages.push(completion_solved.usage);
   const solved = completion_solved.choices[0].message.content.startsWith("Yes");
 
-  // Create an additional comment to the reply.
+  // Create an additional comment to the reply if it is just a Yes/No.
   // If the puzzle is solved, add a sentence to praise them in the reply.
   // If not, add a sentence to encourage them to ask another question.
-  const user_comment: ChatCompletionRequestMessage = solved
-    ? {
-      role: "user",
-      content:
-        `Add a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.
+  if (reply.length < 5) {
+    const user_comment: ChatCompletionRequestMessage = solved
+      ? {
+        role: "user",
+        content:
+          `Add a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.
 
-${reply} `,
-    }
-    : {
-      role: "user",
-      content:
-        `Add an encouraging phrase that evaluates the question, in 5 words or less.
+  ${reply} `,
+      }
+      : {
+        role: "user",
+        content:
+          `Add an encouraging phrase that evaluates the question, in 5 words or less.
 
-${reply} `,
-    };
+  ${reply} `,
+      };
 
-  const completion_comment = await createChatCompletion({
-    model: "gpt-3.5",
-    messages: [
-      system_init,
-      system_problem,
-      ...chat_context,
-      user_question,
-      assistant_reply,
-      user_comment,
-    ],
-    temperature: 1,
-  });
-  usages.push(completion_comment.usage);
-  const comment = completion_comment.choices[0].message.content;
+    const completion_comment = await createChatCompletion({
+      model: "gpt-3.5",
+      messages: [
+        system_init,
+        system_problem,
+        ...chat_context,
+        user_question,
+        assistant_reply,
+        user_comment,
+      ],
+      temperature: 1,
+    });
+    usages.push(completion_comment.usage);
+    const comment = completion_comment.choices[0].message.content;
+    reply += ` ${comment}`;
+  }
 
-  return {
-    reply: `${reply} ${comment}` as ReplyToQuestion,
-    solved,
-    usages,
-  };
+  return { reply: reply as ReplyToQuestion, solved, usages };
 }
 
 export type ResultAnnounce = {
