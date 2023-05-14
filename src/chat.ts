@@ -5,27 +5,28 @@ import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
 import { now } from "./utils.ts";
 
 export function subscribeChatInvite(opts: {
-  relay: Relay;
+  relay_read: Relay;
+  relays_write: Relay[];
   privateKey: PrivateKey;
 }): Sub {
-  const { relay, privateKey } = opts;
+  const { relay_read, relays_write, privateKey } = opts;
   const pubkey = ensurePublicKey(privateKey);
 
   // A set of unique chat ids we're already in
   const chats = new Set<string>();
 
-  const sub = relay.sub([
+  const sub = relay_read.sub([
     {
       kinds: [Kind.Text],
       "#p": [pubkey],
       since: now(),
     },
   ]);
-  console.log(`subscribed to ${relay.url} for chat invitations`);
+  console.log(`subscribed to ${relay_read.url} for chat invitations`);
 
   // Reply to the invitation, join the chat, and subscribe to the chat
   sub.on("event", async (event) => {
-    console.log(`recieved a mention from ${relay.url}:`, event);
+    console.log(`recieved a mention from ${relay_read.url}:`, event);
 
     const eventRef = parseReferences(event).find((ref) => ref.event);
     if (!eventRef) return;
@@ -34,18 +35,18 @@ export function subscribeChatInvite(opts: {
     // Decline if the author is not verified with NIP-05
     const verified = await userIsVerified({
       pubkey: event.pubkey as PublicKey,
-      relay,
+      relay: relay_read,
     });
     if (!verified) {
       publishEvent(
-        relay,
+        relays_write,
         createReplyEvent({
-          event,
+          event_target: event,
           template: {
             content: "I could not find a NIP-05 verified profile for you. " +
               "I'm afraid that I can only join chats with verified users.",
           },
-          relay,
+          relay_recommend: relay_read,
           privateKey,
         }),
       );
@@ -55,13 +56,13 @@ export function subscribeChatInvite(opts: {
     // Decline the invitation if we're already in the chat
     if (chats.has(chat)) {
       publishEvent(
-        relay,
+        relays_write,
         createReplyEvent({
-          event,
+          event_target: event,
           template: {
             content: "I'm already in!",
           },
-          relay,
+          relay_recommend: relay_read,
           privateKey,
         }),
       );
@@ -73,28 +74,28 @@ export function subscribeChatInvite(opts: {
 
     // Reply to the invitation
     publishEvent(
-      relay,
+      relays_write,
       createReplyEvent({
-        event,
+        event_target: event,
         template: {
           content: "I'm joining!",
         },
-        relay,
+        relay_recommend: relay_read,
         privateKey,
       }),
     );
 
     // Join the chat
     publishEvent(
-      relay,
+      relays_write,
       createEvent(privateKey, {
         kind: Kind.ChannelMessage,
-        tags: [["e", chat, relay.url, "root"]],
+        tags: [["e", chat, relay_read.url, "root"]],
         content: "Hello, thank you for the invitation!",
       }),
     );
 
-    subscribeChat(relay, chat);
+    subscribeChat(relay_read, chat);
   });
 
   return sub;
