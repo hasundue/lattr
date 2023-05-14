@@ -466,7 +466,7 @@ export async function createReplyToQuestion(args: {
 
   const system_answer: ChatCompletionRequestMessage = {
     role: "system",
-    content: `The answer: "${puzzle.answer}"`,
+    content: `The answer: "${puzzle.answer}" (not revealed to participants).`,
   };
 
   const system_rules: ChatCompletionRequestMessage = {
@@ -499,8 +499,8 @@ export async function createReplyToQuestion(args: {
       system_rules,
       {
         role: "system",
-        content:
-          `Reply to the following messages about the puzzle in a single word.
+        content: `Reply to the following messages about the puzzle.
+
 Desired format: <Yes/No><./!>`,
       },
       ...chat_context,
@@ -513,25 +513,23 @@ Desired format: <Yes/No><./!>`,
   const assistant_reply = completion_reply.choices[0].message;
   let reply = assistant_reply.content;
 
-  const user_keyfact: ChatCompletionRequestMessage = {
+  const user_solved: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Does the conversation above suggest the participants has found that ${
-        puzzle.keyfact.slice(0, -1)
-      }?
+      `Does the conversation above suggest that the participants solved the puzzle?
+
 Desired format: <Yes/No>.`,
   };
 
-  // TODO: Use GPT-4
   const completion_solved = await createChatCompletion({
-    model: "gpt-3.5",
+    model: "gpt-4",
     messages: [
       system_init,
       system_problem,
       ...chat_context,
       user_question,
       assistant_reply,
-      user_keyfact,
+      user_solved,
     ],
     stop: [".", ","],
     temperature: 0,
