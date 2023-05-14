@@ -522,6 +522,7 @@ Desired format: <Yes/No><./!>`,
 Desired format: <Yes/No>.`,
   };
 
+  // TODO: Use GPT-4
   const completion_solved = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
