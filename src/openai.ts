@@ -621,7 +621,7 @@ export async function createResultAnnounce(args: {
 
   const system_solver: ChatCompletionRequestMessage = {
     role: "system",
-    content: `A participant ${winner} solved a puzzle.`,
+    content: `A participant nostr:${winner} solved a puzzle.`,
   };
 
   const completion_intro = await createChatCompletion({
