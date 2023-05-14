@@ -168,6 +168,7 @@ export async function subscribePuzzle(context: {
     chat_history.push({
       question: result_validation.question,
       reply: result_reply.reply,
+      replyType: result_reply.replyType,
     });
     usages.push(...result_reply.usages);
 

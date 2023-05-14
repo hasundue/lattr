@@ -200,7 +200,6 @@ export type CompletionResult = {
 export type Puzzle = {
   problem: string;
   answer: string;
-  keyfact: string;
 };
 
 export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
@@ -221,13 +220,11 @@ Requirements:
 - The problem should present an unusual scenario or situation with a challenging mystery.
 - Readers must find an unexpected story behind it, which elegantly solves the mystery without significant inconsistency.
 - The last sentence of the problem must be a simple and brief question.
-- Extract the most important fact that participants must discover, which is not mentioned in the problem but in the answer.
 
 Desired format: 
 { 
   "problem": <problem in 280 characters or less>,
   "answer": <answer in 280 characters or less>,
-  "keyfact": <a brief sentence in 70 characters or less>
 }`,
       },
     ],
@@ -435,12 +432,16 @@ Desired format: <Yes/No>.`,
 export type Chat = {
   question: ValidQuestion;
   reply: ReplyToQuestion;
+  replyType: ReplyType;
 };
 
 export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
 
+export type ReplyType = "affirmation" | "negation" | "neither";
+
 export type CreateReplyToQuestionResult = {
   reply: ReplyToQuestion;
+  replyType: ReplyType;
   solved: boolean;
 } & CompletionResult;
 
@@ -490,7 +491,7 @@ export async function createReplyToQuestion(args: {
     content: question,
   };
 
-  const completion_reply = await createChatCompletion({
+  const completion_yesno = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
       system_init,
@@ -508,16 +509,16 @@ Desired format: <Yes/No><./!>`,
     ],
     temperature: 0,
   });
-  usages.push(completion_reply.usage);
+  usages.push(completion_yesno.usage);
 
-  const assistant_reply = completion_reply.choices[0].message;
-  let reply = assistant_reply.content;
+  const assistant_yesno = completion_yesno.choices[0].message;
+  const yesno = assistant_yesno.content;
 
   const completion_classify = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
       user_question,
-      assistant_reply,
+      assistant_yesno,
       {
         role: "user",
         content: `Classify the reply.
@@ -531,20 +532,10 @@ Desired format: <affirmation/negation/neither>`,
   usages.push(completion_classify.usage);
 
   const replyType = completion_classify.choices[0].message.content
-    .toLowerCase() as "affirmation" | "negation" | "neither";
+    .toLowerCase() as ReplyType;
 
-  let solved = false;
-
-  if (replyType === "affirmation") {
-    const user_solved: ChatCompletionRequestMessage = {
-      role: "user",
-      content:
-        `Does the conversation above suggest that the participants solved the puzzle?
-
-Desired format: <Yes/No>.`,
-    };
-
-    const completion_solved = await createChatCompletion({
+  const solved = replyType === "affirmation"
+    ? await createChatCompletion({
       model: "gpt-4",
       messages: [
         system_init,
@@ -552,54 +543,63 @@ Desired format: <Yes/No>.`,
         system_answer,
         ...chat_context,
         user_question,
-        assistant_reply,
-        user_solved,
+        assistant_yesno,
+        {
+          role: "user",
+          content:
+            `Does the conversation above suggest that the participants solved the puzzle?
+
+Desired format: <Yes/No>.`,
+        },
       ],
       stop: [".", ","],
       temperature: 0,
-    });
-    usages.push(completion_solved.usage);
-    solved = completion_solved.choices[0].message.content.startsWith("Yes");
-  }
+    }).then((completion_solved) => {
+      usages.push(completion_solved.usage);
+      return completion_solved.choices[0].message.content.startsWith("Yes");
+    })
+    : false;
 
   // Create an additional comment to the reply if it is just a Yes/No.
   // If the puzzle is solved, add a sentence to praise them in the reply.
   // If not, add a sentence to encourage them to ask another question.
-  if (reply.length < 5) {
-    const user_comment: ChatCompletionRequestMessage = solved
-      ? {
-        role: "user",
-        content:
-          `Add a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.
+  const user_comment: ChatCompletionRequestMessage = solved
+    ? {
+      role: "user",
+      content:
+        `Add a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.
 
-  ${reply} `,
-      }
-      : {
-        role: "user",
-        content:
-          `Add an encouraging phrase that evaluates the question, in 5 words or less.
+  ${yesno} `,
+    }
+    : {
+      role: "user",
+      content:
+        `Add an encouraging phrase that evaluates the question, in 5 words or less.
 
-  ${reply} `,
-      };
+  ${yesno} `,
+    };
 
-    const completion_comment = await createChatCompletion({
+  const comment = solved || yesno.length < 5
+    ? await createChatCompletion({
       model: "gpt-3.5",
       messages: [
         system_init,
         system_problem,
         ...chat_context,
         user_question,
-        assistant_reply,
+        assistant_yesno,
         user_comment,
       ],
       temperature: 1,
-    });
-    usages.push(completion_comment.usage);
-    const comment = completion_comment.choices[0].message.content;
-    reply += ` ${comment}`;
-  }
+    }).then((completion_comment) => {
+      usages.push(completion_comment.usage);
+      return ` ${completion_comment.choices[0].message.content}`;
+    })
+    : "";
 
-  return { reply: reply as ReplyToQuestion, solved, usages };
+  const reply = yesno + comment as ReplyToQuestion;
+
+  return { reply, replyType, solved, usages };
 }
 
 export type ResultAnnounce = {

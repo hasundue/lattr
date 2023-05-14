@@ -30,7 +30,6 @@ const puzzle1: Puzzle = {
     "Every day at exactly 3 PM, a man goes to the park and stands by a specific tree for 10 minutes. There are no benches, nor is he doing anything noticeable. No one ever joins him. Why does he do this?",
   answer:
     "The man is a beekeeper who lives nearby. One of his beehives is in that tree, and he visits the park daily to check on the bees. He stands still for 10 minutes to observe the bees without disturbing them and to make sure the hive is healthy and productive.",
-  keyfact: "The man is a beekeeper.",
 };
 
 const puzzle2: Puzzle = {
@@ -38,7 +37,6 @@ const puzzle2: Puzzle = {
     "A man entered a town on Friday, stayed for 3 days, and left on Friday. How did he do it?",
   answer:
     "The man arrived on Friday, stayed for three days (Friday, Saturday, and Sunday), and left on Friday. The twist is that he entered riding a horse named 'Friday'.",
-  keyfact: "The name of the horse is Friday.",
 };
 
 const puzzle3: Puzzle = {
@@ -46,7 +44,6 @@ const puzzle3: Puzzle = {
     "A prestigious art gallery has unveiled a painting from an unknown artist. Observers notice that the painting's layout seems to go beyond the canvas frame, as if the art continued beyond the boundary. What's the most peculiar aspect of the painting?",
   answer:
     "The painting is a 3D optical illusion; it appears to continue outward beyond its frame, merging with the surrounding environment. The unknown artist cleverly incorporated light, shadow, and perspective to achieve this effect, leaving observers intrigued.",
-  keyfact: "The painting is a 3D optical illusion.",
 };
 
 describe("createIntroduction", () => {
@@ -149,6 +146,7 @@ describe("createReplyToQuestion", () => {
           {
             question: "Does he watch creatures?" as ValidQuestion,
             reply: "Yes!" as ReplyToQuestion,
+            replyType: "affirmation",
           },
         ],
       });
