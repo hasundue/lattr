@@ -513,29 +513,54 @@ Desired format: <Yes/No><./!>`,
   const assistant_reply = completion_reply.choices[0].message;
   let reply = assistant_reply.content;
 
-  const user_solved: ChatCompletionRequestMessage = {
-    role: "user",
-    content:
-      `Does the conversation above suggest that the participants solved the puzzle?
-
-Desired format: <Yes/No>.`,
-  };
-
-  const completion_solved = await createChatCompletion({
-    model: "gpt-4",
+  const completion_classify = await createChatCompletion({
+    model: "gpt-3.5",
     messages: [
-      system_init,
-      system_problem,
-      ...chat_context,
       user_question,
       assistant_reply,
-      user_solved,
+      {
+        role: "user",
+        content: `Classify the reply.
+
+Desired format: <affirmation/negation/neither>`,
+      },
     ],
-    stop: [".", ","],
     temperature: 0,
+    stop: [",", "."],
   });
-  usages.push(completion_solved.usage);
-  const solved = completion_solved.choices[0].message.content.startsWith("Yes");
+  usages.push(completion_classify.usage);
+
+  const replyType = completion_classify.choices[0].message.content
+    .toLowerCase() as "affirmation" | "negation" | "neither";
+
+  let solved = false;
+
+  if (replyType === "affirmation") {
+    const user_solved: ChatCompletionRequestMessage = {
+      role: "user",
+      content:
+        `Does the conversation above suggest that the participants solved the puzzle?
+
+Desired format: <Yes/No>.`,
+    };
+
+    const completion_solved = await createChatCompletion({
+      model: "gpt-4",
+      messages: [
+        system_init,
+        system_problem,
+        system_answer,
+        ...chat_context,
+        user_question,
+        assistant_reply,
+        user_solved,
+      ],
+      stop: [".", ","],
+      temperature: 0,
+    });
+    usages.push(completion_solved.usage);
+    solved = completion_solved.choices[0].message.content.startsWith("Yes");
+  }
 
   // Create an additional comment to the reply if it is just a Yes/No.
   // If the puzzle is solved, add a sentence to praise them in the reply.
