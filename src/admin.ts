@@ -1,18 +1,19 @@
 import { Kind, Relay } from "npm:nostr-tools";
 import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
-import { publishPuzzle } from "./puzzle.ts";
+import { handlePuzzle } from "./puzzle.ts";
 import { now } from "./utils.ts";
 
 export function subscribeAdmin(opts: {
   admin: PublicKey;
-  relays: Relay[];
+  relay_read: Relay;
+  relay_recommend: Relay;
+  relays_write: Relay[];
   privateKey: PrivateKey;
 }) {
-  const { admin, relays, privateKey } = opts;
-  const relay = relays[0];
+  const { admin, relay_read, relay_recommend, relays_write, privateKey } = opts;
   const publicKey = ensurePublicKey(privateKey);
 
-  const sub = relay.sub([
+  const sub = relay_read.sub([
     {
       kinds: [Kind.Text],
       authors: [admin],
@@ -20,11 +21,11 @@ export function subscribeAdmin(opts: {
       since: now(),
     },
   ]);
-  console.log(`Subscribed to ${relay.url} for admin messages`);
+  console.log(`Subscribed to ${relay_read.url} for admin messages`);
 
   // Reply to admin messages
   sub.on("event", async (event) => {
-    console.log(`recieved an admin message from ${relay.url}:`, event);
+    console.log(`recieved an admin message from ${relay_read.url}:`, event);
 
     if (
       event.tags.find((tag) => tag[0] === "e") &&
@@ -35,7 +36,12 @@ export function subscribeAdmin(opts: {
     }
 
     if (new RegExp("next puzzle", "i").test(event.content)) {
-      await publishPuzzle({ relays, privateKey });
+      await handlePuzzle({
+        relays_write,
+        relay_recommend,
+        relay_read,
+        privateKey,
+      });
     }
   });
 

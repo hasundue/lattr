@@ -18,11 +18,13 @@ import {
 import { createEvent, createReplyEvent, publishEvent } from "./event.ts";
 import { Brand, now } from "./utils.ts";
 
-export async function publishPuzzle(context: {
-  relays: Relay[];
+export async function handlePuzzle(context: {
+  relay_read: Relay;
+  relays_write: Relay[];
+  relay_recommend: Relay;
   privateKey: PrivateKey;
 }) {
-  const { relays, privateKey } = context;
+  const { relay_read, relay_recommend, relays_write, privateKey } = context;
   const usages_puzzle: CompletionUsage[] = [];
 
   /**
@@ -42,25 +44,34 @@ Q: ${puzzle.problem}
 ${intro.request}`,
   });
 
-  for (const relay of context.relays) {
-    publishEvent(relay, event);
-  }
+  publishEvent(context.relays_write, event);
 
   // Subscribe questions to the puzzle thread
-  await subscribePuzzle({ puzzle, event, usages_puzzle, relays, privateKey });
+  await handleQuestions({
+    puzzle,
+    event,
+    usages_puzzle,
+    relays_write,
+    relay_read,
+    relay_recommend,
+    privateKey,
+  });
 }
 
 /**
 /* Subscribe questions to the puzzle thread
 /*/
-export async function subscribePuzzle(context: {
-  puzzle: Puzzle;
+export async function handleQuestions(context: {
+  relay_read: Relay;
+  relays_write: Relay[];
+  relay_recommend: Relay;
   event: Event;
+  puzzle: Puzzle;
   usages_puzzle: CompletionUsage[];
-  relays: Relay[];
   privateKey: PrivateKey;
 }) {
-  const { puzzle, relays, privateKey } = context;
+  const { puzzle, relays_write, relay_read, relay_recommend, privateKey } =
+    context;
   const event_puzzle = context.event;
   const publicKey = ensurePublicKey(privateKey);
 
@@ -68,8 +79,7 @@ export async function subscribePuzzle(context: {
   const chat_history: Chat[] = [];
   const events_sub = [event_puzzle.id];
 
-  const relay = relays[0];
-  const sub = relay.sub([]);
+  const sub = relay_read.sub([]);
 
   function updateSub(opts?: { newEvent?: string }) {
     if (opts?.newEvent) {
@@ -119,7 +129,7 @@ export async function subscribePuzzle(context: {
       continue;
     }
 
-    const event_parent = await relay.get({ ids: [tag_parent.id] });
+    const event_parent = await relay_read.get({ ids: [tag_parent.id] });
 
     if (!event_parent) {
       console.warn("Parent event not found:", tag_parent);
@@ -149,13 +159,13 @@ export async function subscribePuzzle(context: {
     // If not, reply with a validation message
     if (!result_validation.valid) {
       const reply = createReplyEvent({
-        event: event_recieved,
+        event_target: event_recieved,
         template: { content: result_validation.reply },
-        relay,
+        relay_recommend,
         privateKey,
       });
       updateSub({ newEvent: reply.id });
-      publishEvent(relay, reply);
+      publishEvent(relays_write, reply);
       continue;
     }
 
@@ -174,12 +184,12 @@ export async function subscribePuzzle(context: {
 
     const reply = createReplyEvent({
       privateKey,
-      event: event_recieved,
-      relay,
+      event_target: event_recieved,
+      relay_recommend,
       template: { content: result_reply.reply },
     });
     updateSub({ newEvent: reply.id });
-    publishEvent(relay, reply);
+    publishEvent(relays_write, reply);
 
     // If the puzzle has been solved, publish the answer and return.
     if (result_reply.solved) {
@@ -190,7 +200,7 @@ export async function subscribePuzzle(context: {
       const result_announce = await createResultAnnounce({
         winner: nip19.nprofileEncode({
           pubkey: event_recieved.pubkey,
-          relays: [relay.url],
+          relays: [relay_read.url],
         }) as NostrProfile,
       });
       usages.push(...result_announce.usages);
@@ -201,10 +211,10 @@ export async function subscribePuzzle(context: {
       const cost = await calculateCost(usage);
 
       publishEvent(
-        relay,
+        relays_write,
         createReplyEvent({
-          event: event_puzzle,
-          relay,
+          event_target: event_puzzle,
+          relay_recommend,
           template: {
             content: `${result_announce.intro}
 
@@ -221,16 +231,18 @@ ${result_announce.remark} (total cost: ⚡${cost})`,
 }
 
 export async function closeUnsolvedPuzzles(context: {
-  relay: Relay;
+  relay_read: Relay;
+  relay_recommend: Relay;
+  relays_write: Relay[];
   privateKey: PrivateKey;
 }): Promise<void> {
   console.log("Looking for unsolved puzzles...");
 
-  const { relay, privateKey } = context;
+  const { relay_read, relay_recommend, relays_write, privateKey } = context;
   const publicKey = ensurePublicKey(privateKey);
 
   // Retrieve all kinds of our notes since no better way
-  const sub = relay.sub([{
+  const sub = relay_read.sub([{
     kinds: [Kind.Text],
     authors: [publicKey],
     until: now(),
@@ -251,7 +263,7 @@ export async function closeUnsolvedPuzzles(context: {
     // TODO: Check if the event is a puzzle (we have to do nothing for now)
 
     // Retrieve all our replies to the puzzle
-    const replies = await relay.list([{
+    const replies = await relay_read.list([{
       authors: [publicKey],
       "#e": [event.id],
     }]);
@@ -288,11 +300,11 @@ export async function closeUnsolvedPuzzles(context: {
 
     console.log("Publishing a reply to announce that it is closed..");
     publishEvent(
-      relay,
+      relays_write,
       createReplyEvent({
-        event,
-        relay,
+        event_target: event,
         template: { content: await createCloseAnnounce() },
+        relay_recommend,
         privateKey,
       }),
     );
