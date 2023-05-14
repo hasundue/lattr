@@ -32,7 +32,7 @@ const nprofile_owner = nip19.nprofileEncode({
 const PROFILE = {
   name: "Lattr",
   about:
-    `An AI-powered cat who creates lateral thinking puzzles and wants to play them with you. Still in training with my owner ${nprofile_owner}.`,
+    `An AI-powered cat who creates lateral thinking puzzles and wants to play them with you. Still in training with my owner nostr:${nprofile_owner}.`,
   picture: "https://chiezo.dev/images/lattr.jpg",
   nip05: "lattr@chiezo.dev",
   lud16: "patchedisrael58@walletofsatoshi.com",
