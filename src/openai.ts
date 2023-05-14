@@ -534,6 +534,19 @@ Desired format: <affirmation/negation/neither>`,
   const replyType = completion_classify.choices[0].message.content
     .toLowerCase() as ReplyType;
 
+  const chat_affirmation =
+    context?.filter((chat) => chat.replyType === "affirmation")
+      .map((chat): ChatCompletionRequestMessage[] => [
+        {
+          role: "user",
+          content: chat.question,
+        },
+        {
+          role: "assistant",
+          content: chat.reply,
+        },
+      ]).flat() ?? [];
+
   const solved = replyType === "affirmation"
     ? await createChatCompletion({
       model: "gpt-4",
@@ -541,7 +554,7 @@ Desired format: <affirmation/negation/neither>`,
         system_init,
         system_problem,
         system_answer,
-        ...chat_context,
+        ...chat_affirmation,
         user_question,
         assistant_yesno,
         {
