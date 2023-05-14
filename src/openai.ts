@@ -224,7 +224,7 @@ Requirements:
 Desired format: 
 { 
   "problem": <problem in 280 characters or less>,
-  "answer": <answer in 280 characters or less>,
+  "answer": <answer in 280 characters or less>
 }`,
       },
     ],
