@@ -1,4 +1,4 @@
-import { Job, Pipeline, } from "https://deno.land/x/cicada@v0.1.50/mod.ts";
+import { Job, Pipeline } from "https://deno.land/x/cicada@v0.1.50/mod.ts";
 
 const test = new Job({
   name: "Test",
@@ -18,7 +18,8 @@ const test = new Job({
     },
     {
       name: "Upload coverage",
-      run: "curl -Os https://uploader.codecov.io/latest/linux/codecov && chmod +x codecov && ./codecov",
+      run:
+        "curl -Os https://uploader.codecov.io/latest/linux/codecov && chmod +x codecov && ./codecov",
     },
   ],
 });
