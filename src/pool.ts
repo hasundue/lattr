@@ -12,8 +12,8 @@ import { now } from "./utils.ts";
 
 export type RelayConfig = {
   url: RelayUrl;
-  read: boolean;
-  write: boolean;
+  read?: boolean;
+  write?: boolean;
 };
 
 type RelayConn = Relay & RelayConfig;

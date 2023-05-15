@@ -6,27 +6,32 @@ import {
   describe,
   it,
 } from "https://deno.land/std@0.185.0/testing/bdd.ts";
-import { Relay, relayInit } from "npm:nostr-tools";
+import { RelayPool } from "./pool.ts";
 import { userIsVerified } from "./ident.ts";
 import { ensurePublicKey, PublicKey } from "./keys.ts";
 
 describe("userIsVerified", () => {
   let pubkey: PublicKey;
-  let relay: Relay;
+  let relayPool: RelayPool;
 
   beforeAll(async () => {
     pubkey = ensurePublicKey();
 
-    relay = relayInit("wss://nos.lol");
-    await relay.connect();
+    relayPool = new RelayPool([
+      {
+        url: "wss://nos.lol",
+        read: true,
+      },
+    ]);
+    await relayPool.connect();
   });
 
   afterAll(async () => {
-    relay.close();
+    relayPool.close();
     await delay(1000); // Give the relay some time to close the connection.
   });
 
   it("Chiezo should be verified on wss://nos.lol", async () => {
-    assert(await userIsVerified({ pubkey, relay }));
+    assert(await userIsVerified({ pubkey, relayPool }));
   });
 });

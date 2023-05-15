@@ -10,20 +10,22 @@ export async function userIsVerified(args: {
 
   console.log(`Looking for a verified profile of ${pubkey}...`);
 
-  const sub = relayPool.subscribe({
+  const profile = await relayPool.getLatestEvent({
     kinds: [Kind.Metadata],
     authors: [pubkey],
-  }, { name: "metadata", close_on_eose: true });
+  });
 
-  for await (const event of sub.stream) {
-    if (await eventIsVerified(event)) {
-      sub.stop();
-      console.log(`Found a verified profile for ${pubkey}.`);
-      return true;
-    }
+  if (!profile) {
+    console.log(`No profile found for ${pubkey}.`);
+    return false;
   }
 
-  console.log(`No verified profile found for ${pubkey}.`);
+  if (await eventIsVerified(profile)) {
+    console.log(`Found a verified profile for ${pubkey}.`);
+    return true;
+  }
+
+  console.log(`Verified profile not found for ${pubkey}.`);
   return false;
 }
 
