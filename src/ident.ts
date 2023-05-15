@@ -10,7 +10,7 @@ export async function userIsVerified(args: {
 
   console.log(`Looking for a verified profile of ${pubkey}...`);
 
-  const profile = await relayPool.getLatestEvent({
+  const profile = await relayPool.getLatest({
     kinds: [Kind.Metadata],
     authors: [pubkey],
   });

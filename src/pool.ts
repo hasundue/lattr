@@ -165,7 +165,7 @@ export class RelayPool {
     return sub.stream;
   }
 
-  async getLatestEvent(filter: Filter): Promise<Event | null> {
+  async getLatest(filter: Filter): Promise<Event | null> {
     const sub = new Subscription(
       this.relays.filter((conn) => conn.read),
       { limit: 1, ...filter },
