@@ -54,8 +54,9 @@ for (const name in relays) {
     console.log(`Connected to ${relay.url}`);
   });
 
-  relay.on("disconnect", () => {
-    console.log(`Disconnected from ${relay.url}`);
+  relay.on("disconnect", async () => {
+    console.log(`Disconnected from ${relay.url}. Reconnecting...`);
+    await relay.connect();
   });
 
   relay.on("error", () => {
