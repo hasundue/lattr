@@ -16,7 +16,7 @@ export type RelayConfig = {
   write?: boolean;
 };
 
-type RelayConn = Relay & RelayConfig;
+type RelayConn = Relay & RelayConfig & { connected: boolean };
 
 export type SubscribeOptions = SubscriptionOptions & {
   name?: string;
@@ -103,7 +103,7 @@ export class RelayPool {
   constructor(relays: RelayConfig[]) {
     for (const config of relays) {
       const relay = relayInit(config.url);
-      const conn = { ...relay, ...config };
+      const conn = { ...relay, ...config, connected: false };
       this.relays.push(conn);
     }
   }
@@ -116,12 +116,14 @@ export class RelayPool {
 
       relay.on("disconnect", async () => {
         console.log(`Disconnected from ${relay.url}.`);
+        relay.connected = false;
 
         // We reconnect to write-only relays on demand.
         if (!relay.read) return;
 
         // Reconnect to the relay.
         await relay.connect();
+        relay.connected = true;
         console.log(`Reconnected to ${relay.url}.`);
 
         // Resubscribe to all filters.
@@ -135,6 +137,7 @@ export class RelayPool {
       });
 
       await relay.connect();
+      relay.connected = true;
     }
   }
 
@@ -181,7 +184,7 @@ export class RelayPool {
           }
 
           // Reconnect to the relay if it's disconnected.
-          if (relay.status !== 1) {
+          if (!relay.connected) {
             await relay.connect();
             console.log(`Reconnected to ${relay.url}.`);
           }
