@@ -103,7 +103,7 @@ export async function handleQuestions(
       continue;
     }
 
-    const event_parent = await relayPool.getLatestEvent({
+    const event_parent = await relayPool.getLatest({
       ids: [tag_parent.id],
     });
 
