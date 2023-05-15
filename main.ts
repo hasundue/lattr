@@ -1,14 +1,13 @@
-import { mapValues } from "https://deno.land/std@0.185.0/collections/map_values.ts";
 import { signal } from "https://deno.land/std@0.185.0/signal/mod.ts";
-import { Kind, nip19, relayInit } from "npm:nostr-tools";
+import { Kind, nip19 } from "npm:nostr-tools";
 import {
   closeUnsolvedPuzzles,
   createEvent,
   ensurePrivateKey,
   ensurePublicKey,
   PublicKey,
-  publishEvent,
-  subscribeAdmin,
+  RelayPool,
+  handleAdminMessages,
   // subscribeChatInvite,
   // resumeChats,
 } from "./src/nostr.ts";
@@ -16,25 +15,14 @@ import {
 const privateKey = ensurePrivateKey();
 const npub = nip19.npubEncode(ensurePublicKey(privateKey));
 
-const relays = mapValues({
-  nos_lol: "wss://nos.lol",
-  wine: "wss://nostr.wine",
-  wine_filter: `wss://filter.nostr.wine/${npub}?broadcast=true`,
-}, relayInit);
+const relay_recommend = "wss://nos_lol";
 
-const relay_read = relays.wine_filter;
-const relay_recommend = relays.nos_lol;
-const relays_write = [relays.wine, relays.wine_filter];
-
-const public_key_owner = // Chiezo
+const publicKey_owner = // Chiezo
   "c04330adadd9508c1ad1c6ede0aed5d922a3657021937e2055a80c1b2865ccf7" as PublicKey;
 
 const nprofile_owner = nip19.nprofileEncode({
-  pubkey: public_key_owner,
-  relays: [
-    relays.wine.url,
-    relays.nos_lol.url,
-  ],
+  pubkey: publicKey_owner,
+  relays: [relay_recommend],
 });
 
 const PROFILE = {
@@ -46,30 +34,24 @@ const PROFILE = {
   lud16: "patchedisrael58@walletofsatoshi.com",
 } as const;
 
-// Connect to all relays
-for (const name in relays) {
-  const relay = relays[name];
+const relayPool = new RelayPool([
+  {
+    url: "wss://nostr.wine",
+    read: true,
+    write: true,
+  },
+  {
+    url: `wss://filter.nostr.wine/${npub}?broadcast=true`,
+    read: true,
+    write: true,
+  },
+]);
 
-  relay.on("connect", () => {
-    console.log(`Connected to ${relay.url}`);
-  });
-
-  relay.on("disconnect", async () => {
-    console.log(`Disconnected from ${relay.url}. Reconnecting...`);
-    await relay.connect();
-  });
-
-  relay.on("error", () => {
-    console.log(`Failed to connect to ${relay.url}`);
-  });
-
-  await relay.connect();
-}
+await relayPool.connect();
 
 // Publish the profile (metadata)
 console.log("Publishing profile...");
-publishEvent(
-  relays_write,
+await relayPool.publish(
   createEvent(privateKey, {
     kind: Kind.Metadata,
     content: JSON.stringify(PROFILE),
@@ -78,12 +60,11 @@ publishEvent(
 
 // Publish the contact list (NIP-02)
 console.log("Publishing contact list...");
-publishEvent(
-  relays_write,
+await relayPool.publish(
   createEvent(privateKey, {
     kind: Kind.Contacts,
     tags: [
-      ["p", public_key_owner, relay_recommend.url, "chiezo"],
+      ["p", publicKey_owner, relay_recommend, "chiezo"],
     ],
     content: "",
   }),
@@ -91,20 +72,19 @@ publishEvent(
 
 // Publish a relay list (NIP-65)
 console.log("Publishing relay list...");
-publishEvent(
-  relays_write,
+await relayPool.publish(
   createEvent(privateKey, {
     kind: Kind.RelayList,
     tags: [
-      ["r", relays.wine.url, "read", "write"],
-      ["r", relays.nos_lol.url, "read", "write"],
+      ["r", "wss://nos.lol", "read", "write"],
+      ["r", "wss://nostr.wine", "read", "write"],
     ],
     content: "",
   }),
 );
 
 // Publish closing announcements for all terminated and unsolved puzzles
-closeUnsolvedPuzzles({ relay_read, relay_recommend, relays_write, privateKey });
+closeUnsolvedPuzzles({ relayPool, relay_recommend, privateKey });
 
 // resumeChats({
 //   relay: relays[0],
@@ -116,21 +96,18 @@ closeUnsolvedPuzzles({ relay_read, relay_recommend, relays_write, privateKey });
 //   privateKey,
 // });
 
-subscribeAdmin({
-  admin: public_key_owner,
-  relays_write,
-  relay_read,
+handleAdminMessages({
+  admin: publicKey_owner,
+  relayPool,
   relay_recommend,
-  privateKey: privateKey,
+  privateKey,
 });
 
 const signals = signal("SIGINT");
 
 for await (const _ of signals) {
   console.log("recieved SIGINT, shutting down...");
-  Object.values(relays).forEach(
-    (relay) => relay.close(),
-  );
   signals.dispose();
+  relayPool.close();
   Deno.exit(0);
 }

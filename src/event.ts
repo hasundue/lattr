@@ -6,11 +6,11 @@ import {
   getPublicKey,
   Kind,
   nip10,
-  Relay,
   signEvent,
   validateEvent,
   verifySignature,
 } from "npm:nostr-tools";
+import { RelayUrl } from "./nostr.ts";
 import { ensurePublicKey, PrivateKey } from "./keys.ts";
 import { Expand, now } from "./utils.ts";
 
@@ -60,7 +60,7 @@ export function createEvent(
 export function createReplyEvent(args: {
   event_target: Event;
   template: EventTemplateInit;
-  relay_recommend: Relay;
+  relay_recommend: RelayUrl;
   privateKey: PrivateKey;
 }): Event {
   const { event_target, relay_recommend, template, privateKey } = args;
@@ -82,7 +82,7 @@ export function createReplyEvent(args: {
   const marker = (tags.root || tags.reply) ? "reply" : "root";
 
   // A tag for the event we're publishing
-  const tag_reply = ["e", event_target.id, relay_recommend.url, marker];
+  const tag_reply = ["e", event_target.id, relay_recommend, marker];
 
   // A tag for the root event
   const tag_root = tags.root
@@ -103,33 +103,4 @@ export function createReplyEvent(args: {
     created_at: template.created_at,
     content: template.content,
   });
-}
-
-/**
- * Publish a reply to an event and listen for the result.
- */
-export function publishEvent(
-  relays: Relay[],
-  event: Event,
-): void {
-  const env = Deno.env.get("RAILWAY_ENVIRONMENT");
-
-  for (const relay of relays) {
-    console.log(`Publishing an event ${event.id} to ${relay.url}...`);
-
-    if (env !== "production") {
-      console.log(`Skipping publishing in development (env: ${env})...`);
-      continue;
-    }
-
-    const pub = relay.publish(event);
-
-    pub.on("ok", () => {
-      console.log(`Event ${event.id} has been published to ${relay.url}.`);
-    });
-
-    pub.on("failed", (reason: string) => {
-      console.warn(`Failed to publish an event ${event.id} to ${relay.url}:`, reason);
-    });
-  }
 }

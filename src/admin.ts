@@ -1,49 +1,42 @@
-import { Kind, Relay } from "npm:nostr-tools";
+import { Kind } from "npm:nostr-tools";
+import { RelayUrl } from "./nostr.ts";
+import { RelayPool } from "./pool.ts";
 import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";
 import { handlePuzzle } from "./puzzle.ts";
-import { now } from "./utils.ts";
 
-export function subscribeAdmin(opts: {
+export async function handleAdminMessages(opts: {
   admin: PublicKey;
-  relay_read: Relay;
-  relay_recommend: Relay;
-  relays_write: Relay[];
+  relayPool: RelayPool;
+  relay_recommend: RelayUrl;
   privateKey: PrivateKey;
 }) {
-  const { admin, relay_read, relay_recommend, relays_write, privateKey } = opts;
+  const { admin, relayPool, relay_recommend, privateKey } = opts;
   const publicKey = ensurePublicKey(privateKey);
 
-  const sub = relay_read.sub([
-    {
-      kinds: [Kind.Text],
-      authors: [admin],
-      "#p": [publicKey],
-      since: now(),
-    },
-  ]);
-  console.log(`Subscribed to ${relay_read.url} for admin messages`);
+  const sub = relayPool.subscribe({
+    kinds: [Kind.Text],
+    authors: [admin],
+    "#p": [publicKey],
+  });
 
-  // Reply to admin messages
-  sub.on("event", async (event) => {
-    console.log(`recieved an admin message from ${relay_read.url}:`, event);
+  console.log("Subscribed to admin messages.");
 
+  for await (const event of sub.stream) {
     if (
       event.tags.find((tag) => tag[0] === "e") &&
       event.tags.find((tag) => tag[0] === "p" && tag[1] !== publicKey)
     ) {
       console.log("This seems to be a participant in a puzzle thread");
-      return;
+      continue;
     }
 
     if (new RegExp("next puzzle", "i").test(event.content)) {
-      await handlePuzzle({
-        relays_write,
+      console.log("Recieved a request for a new puzzle:", event);
+      handlePuzzle({
+        relayPool,
         relay_recommend,
-        relay_read,
         privateKey,
       });
     }
-  });
-
-  return sub;
+  }
 }
