@@ -5,9 +5,9 @@ import {
   createEvent,
   ensurePrivateKey,
   ensurePublicKey,
+  handleAdminMessages,
   PublicKey,
   RelayPool,
-  handleAdminMessages,
   // subscribeChatInvite,
   // resumeChats,
 } from "./src/nostr.ts";
