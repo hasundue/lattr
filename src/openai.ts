@@ -603,6 +603,7 @@ Desired format: <Yes/No>.`,
         assistant_yesno,
         user_comment,
       ],
+      stop: [".", "!", "?"],
       temperature: 1,
     }).then((completion_comment) => {
       usages.push(completion_comment.usage);
