@@ -82,7 +82,6 @@ export async function handleQuestions(
 
   for await (const event_recieved of sub.stream) {
     console.log("Recieved a note that mentions the puzzle:", event_recieved.id);
-    console.log("Checking if the event is targeted to me...");
 
     if (event_recieved.pubkey === publicKey) {
       console.warn("This event is from me. Skip it...");
