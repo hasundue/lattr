@@ -4,7 +4,7 @@ import {
   assertEquals,
   assertFalse,
 } from "https://deno.land/std@0.185.0/testing/asserts.ts";
-import { NostrProfile } from "./nostr.ts";
+import { NostrPubkey } from "./nostr.ts";
 import {
   ApprovedMessage,
   createCloseAnnounce,
@@ -167,7 +167,7 @@ describe("createReplyToQuestion", () => {
 describe("createResultAnnounce", () => {
   it("create announcement of a result", async () => {
     const res = await createResultAnnounce({
-      winner: "nprofile1xxxxxxxxxxx" as NostrProfile,
+      winner: "nprofile1xxxxxxxxxxx" as NostrPubkey,
     });
     assert(res);
   });

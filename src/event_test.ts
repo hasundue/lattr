@@ -7,13 +7,13 @@ import {
   describe,
   it,
 } from "https://deno.land/std@0.185.0/testing/bdd.ts";
-import { Event, generatePrivateKey, nip10, relayInit } from "npm:nostr-tools";
+import { Event, generatePrivateKey, nip10 } from "npm:nostr-tools";
 import { createEvent, createReplyEvent, EventTemplateInit } from "./event.ts";
 import { PrivateKey } from "./keys.ts";
 
 const privateKey = generatePrivateKey() as PrivateKey;
 const privateKey_someone = generatePrivateKey() as PrivateKey;
-const relay_recommend = relayInit("wss://example.com");
+const relay_recommend = "wss://example.com";
 
 describe("createReplyEvent", () => {
   const root_id = "xxxxxx";
@@ -55,7 +55,7 @@ describe("createReplyEvent", () => {
     it("has a root tag pointing to the non-reply event", () => {
       assert(tags.root);
       assertEquals(tags.root.id, event_target.id);
-      assertEquals(tags.root.relays, [relay_recommend.url]);
+      assertEquals(tags.root.relays, [relay_recommend]);
     });
   });
 
@@ -127,7 +127,7 @@ describe("createReplyEvent", () => {
       event_target = createEvent(privateKey_someone, {
         kind: 1,
         tags: [
-          ["e", root_id, relay_recommend.url, "root"],
+          ["e", root_id, relay_recommend, "root"],
         ],
         created_at: 123,
         content: "hello",
@@ -144,7 +144,7 @@ describe("createReplyEvent", () => {
     it("has a root tag pointing to the non-reply event", () => {
       assert(tags.root);
       assertEquals(tags.root.id, root_id);
-      assertEquals(tags.root.relays, [relay_recommend.url]);
+      assertEquals(tags.root.relays, [relay_recommend]);
     });
 
     it("has a reply tag pointing to the reply event", () => {
@@ -158,8 +158,8 @@ describe("createReplyEvent", () => {
       event_target = createEvent(privateKey_someone, {
         kind: 1,
         tags: [
-          ["e", root_id, relay_recommend.url, "root"],
-          ["e", reply_id, relay_recommend.url, "reply"],
+          ["e", root_id, relay_recommend, "root"],
+          ["e", reply_id, relay_recommend, "reply"],
         ],
         created_at: 123,
         content: "hello",
@@ -176,7 +176,7 @@ describe("createReplyEvent", () => {
     it("has a root tag pointing to the non-reply event", () => {
       assert(tags.root);
       assertEquals(tags.root.id, root_id);
-      assertEquals(tags.root.relays, [relay_recommend.url]);
+      assertEquals(tags.root.relays, [relay_recommend]);
     });
 
     it("has a reply tag pointing to the reply event", () => {
