@@ -44,6 +44,7 @@ export function createEvent(
     throw new Error("Invalid signature", { cause: template });
   }
 
+  console.log("Created an event", event);
   return event;
 }
 
@@ -112,8 +113,9 @@ export function publishEvent(
   event: Event,
 ): void {
   const env = Deno.env.get("RAILWAY_ENVIRONMENT");
+
   for (const relay of relays) {
-    console.log(`Publishing an event to ${relay.url}...`, event);
+    console.log(`Publishing an event ${event.id} to ${relay.url}...`);
 
     if (env !== "production") {
       console.log(`Skipping publishing in development (env: ${env})...`);
@@ -127,7 +129,7 @@ export function publishEvent(
     });
 
     pub.on("failed", (reason: string) => {
-      console.warn(`Failed to publish an event to ${relay.url}:`, reason);
+      console.warn(`Failed to publish an event ${event.id} to ${relay.url}:`, reason);
     });
   }
 }
