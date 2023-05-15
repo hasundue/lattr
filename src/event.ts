@@ -89,7 +89,7 @@ export function createReplyEvent(args: {
     ? [
       "e",
       tags.root.id,
-      tags.root.relays ? tags.root.relays[0] : "",
+      tags.root.relays?.length ? tags.root.relays[0] : "",
       "root",
     ]
     : undefined;
