@@ -27,8 +27,8 @@ export type SubscriptionEvent = Event & {
   relay: RelayUrl;
 };
 
-export class Subscription {
-  private subs = new Map<Relay, Sub>();
+class Subscription {
+  private subs = new Map<RelayUrl, Sub>();
   private events_recieved = new Set<EventId>();
   private eose_recieved = new Set<RelayUrl>();
 
@@ -62,7 +62,7 @@ export class Subscription {
             });
           }
 
-          this.subs.set(relay, sub);
+          this.subs.set(relay.url, sub);
           // console.log(`Subscribed to ${relay.url}:`, filter);
         }
       },
@@ -72,13 +72,16 @@ export class Subscription {
     });
   }
 
-  restart() {
+  restart(relay: RelayConn) {
     this.filter = { ...this.filter, since: now() };
-    for (const relay of this.subs.keys()) {
-      const sub = relay.sub([this.filter], this.options);
-      this.subs.set(relay, sub);
-      console.log(`Resubscribed to ${relay.url}:`, this.filter);
-    }
+    this.subs.set(
+      relay.url,
+      // Update the existing subscription. This sends a REQ event to the relay.
+      this.subs.get(relay.url)?.sub([this.filter], this.options) ??
+        // If the subscription is not found, create a new one. This should not happend though.
+        relay.sub([this.filter], this.options),
+    );
+    console.log(`Resubscribed to ${relay.url}:`, this.filter);
   }
 
   stop() {
@@ -89,8 +92,8 @@ export class Subscription {
   update(filter: Filter, options: SubscriptionOptions = this.options) {
     this.filter = { since: now(), ...filter };
     for (const [relay, sub] of this.subs) {
-      sub.sub([filter], options);
-      console.debug(`Updated subscription to ${relay.url}:`, filter);
+      this.subs.set(relay, sub.sub([filter], options));
+      console.debug(`Updated subscription to ${relay}:`, filter);
     }
   }
 }
@@ -111,33 +114,37 @@ export class RelayPool {
   async connect() {
     for (const relay of this.relays) {
       relay.on("connect", () => {
+        relay.connected = true;
         console.log(`Connected to ${relay.url}.`);
       });
 
       relay.on("disconnect", async () => {
-        console.log(`Disconnected from ${relay.url}.`);
         relay.connected = false;
+        console.log(`Disconnected from ${relay.url}.`);
 
-        // We reconnect to write-only relays on demand.
-        if (!relay.read) return;
-
-        // Reconnect to the relay.
-        await relay.connect();
-        relay.connected = true;
-        console.log(`Reconnected to ${relay.url}.`);
-
-        // Resubscribe to all filters.
-        this.subs.forEach((sub) => {
-          sub.restart();
-        });
+        // Reconnect to the relay. We reconnect to write-only relays on demand.
+        if (relay.read) {
+          await this.reconnect(relay);
+        }
       });
 
-      relay.on("error", () => {
-        throw new Error(`Failed to connect to ${relay.url}.`);
+      relay.on("error", async () => {
+        console.error("Connection error:", relay.url);
+        relay.close();
+        await this.reconnect(relay);
       });
 
       await relay.connect();
-      relay.connected = true;
+    }
+  }
+
+  private async reconnect(relay: RelayConn) {
+    console.log(`Reconnecting to ${relay.url}...`);
+    await relay.connect();
+
+    // Restart all subscriptions to the relay.
+    if (relay.read) {
+      this.subs.forEach((sub) => sub.restart(relay));
     }
   }
 
@@ -173,20 +180,21 @@ export class RelayPool {
   async publish(event: Event) {
     const env = Deno.env.get("RAILWAY_ENVIRONMENT");
 
+    if (env !== "production") {
+      console.log(`Skipped publishing (env: ${env}).`);
+      return;
+    }
+
     await Promise.all(
       this.relays.filter((conn) => conn.write).map((relay) =>
         retry(async () => {
-          console.log(`Publishing an event ${event.id} to ${relay.url}...`);
-
-          if (env !== "production") {
-            console.log(`Skipped (env: ${env})`);
-            return;
-          }
-
-          // Reconnect to the relay if it's disconnected.
           if (!relay.connected) {
-            await relay.connect();
-            console.log(`Reconnected to ${relay.url}.`);
+            console.assert(
+              !relay.read,
+              "Non write-only relay is left disconnected:",
+              relay.url,
+            );
+            await this.reconnect(relay);
           }
 
           const sub = this.subscribe({ ids: [event.id] });
