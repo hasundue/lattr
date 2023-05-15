@@ -580,16 +580,16 @@ Desired format: <Yes/No>.`,
     ? {
       role: "user",
       content:
-        `Add a brief sentence that tells them the puzzle is solved and praises them, in 10 words or less.
+        `Add a brief sentence to the reply, which tells the questioner that they solved the puzzle, in 70 characters or less.
 
-  ${yesno} `,
+${yesno} `,
     }
     : {
       role: "user",
       content:
-        `Add an encouraging phrase that evaluates the question, in 5 words or less.
+        `Add an encouraging phrase to the reply, in 35 characters or less.
 
-  ${yesno} `,
+${yesno} `,
     };
 
   const comment = solved || yesno.length < 5
@@ -603,7 +603,6 @@ Desired format: <Yes/No>.`,
         assistant_yesno,
         user_comment,
       ],
-      stop: [".", "!", "?"],
       temperature: 1,
     }).then((completion_comment) => {
       usages.push(completion_comment.usage);
