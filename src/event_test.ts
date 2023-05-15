@@ -55,6 +55,7 @@ describe("createReplyEvent", () => {
     it("has a root tag pointing to the non-reply event", () => {
       assert(tags.root);
       assertEquals(tags.root.id, event_target.id);
+      assertEquals(tags.root.relays, [relay_recommend.url]);
     });
   });
 
@@ -80,6 +81,7 @@ describe("createReplyEvent", () => {
     it("has a root tag pointing to the non-reply event", () => {
       assert(tags.root);
       assertEquals(tags.root.id, root_id);
+      assertEquals(tags.root.relays, []);
     });
 
     it("has a reply tag pointing to the reply event", () => {
@@ -111,6 +113,7 @@ describe("createReplyEvent", () => {
     it("has a root tag pointing to the root event", () => {
       assert(tags.root);
       assertEquals(tags.root.id, root_id);
+      assertEquals(tags.root.relays, []);
     });
 
     it("has a reply tag pointing to the reply event", () => {
@@ -141,6 +144,7 @@ describe("createReplyEvent", () => {
     it("has a root tag pointing to the non-reply event", () => {
       assert(tags.root);
       assertEquals(tags.root.id, root_id);
+      assertEquals(tags.root.relays, [relay_recommend.url]);
     });
 
     it("has a reply tag pointing to the reply event", () => {
@@ -172,6 +176,7 @@ describe("createReplyEvent", () => {
     it("has a root tag pointing to the non-reply event", () => {
       assert(tags.root);
       assertEquals(tags.root.id, root_id);
+      assertEquals(tags.root.relays, [relay_recommend.url]);
     });
 
     it("has a reply tag pointing to the reply event", () => {
