@@ -10,7 +10,7 @@ import {
   OpenAIApi,
 } from "npm:openai@3.2.1";
 import { Brand, Replace, Require } from "./utils.ts";
-import { NostrProfile } from "./nostr.ts";
+import { NostrPubkey } from "./nostr.ts";
 
 const config = new Configuration({
   apiKey: Deno.env.get("OPENAI_API_KEY"),
@@ -621,7 +621,7 @@ export type ResultAnnounce = {
 };
 
 export async function createResultAnnounce(args: {
-  winner: NostrProfile;
+  winner: NostrPubkey;
 }): Promise<ResultAnnounce & CompletionResult> {
   const { winner } = args;
 
