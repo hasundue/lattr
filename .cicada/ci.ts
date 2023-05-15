@@ -27,6 +27,6 @@ const test = new Job({
 export default new Pipeline([test], {
   name: "CI",
   on: {
-    pullRequest: ["main"],
+    pullRequest: "all",
   },
 });
