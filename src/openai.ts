@@ -603,6 +603,7 @@ ${yesno} `,
         assistant_yesno,
         user_comment,
       ],
+      stop: ["\n"],
       temperature: 1,
     }).then((completion_comment) => {
       usages.push(completion_comment.usage);
