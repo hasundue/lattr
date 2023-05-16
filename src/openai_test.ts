@@ -55,6 +55,14 @@ const puzzle4: Puzzle = {
     "The man was a card player involved in a high-stakes poker game. When other players accused him of cheating, he grabbed a deck and fled into the house. The '53 bicycles' were actually cards from the Bicycle brand deck, including a joker.",
 };
 
+const puzzle5: Puzzle = {
+  "problem":
+    "A world-renowned archaeologist discovered an ancient chamber that was sealed thousands of years ago. Regardless, there's a perfectly fresh apple lying on one of the chamber's pedestals. On the walls, there are puzzling inscriptions. How did the apple end up there?",
+
+  "answer":
+    "The inscriptions on the walls depict how the room is connected to a large, intricate, and undocumented underground river system. The apple fell into the water from an overhanging tree, navigated through the river, and landed on the pedestal, which is designed to catch objects.",
+};
+
 describe("createIntroduction", () => {
   it("create a random introduction of a puzzle1", async () => {
     const res = await createIntroduction({ puzzle: puzzle1 });
@@ -119,7 +127,7 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assertFalse(res.reply.startsWith("Yes"));
-      assertFalse(res.affirm);
+      assertFalse(res.critical);
       assertFalse(res.solved);
     });
     it("Did he timeleap?", async (t) => {
@@ -128,7 +136,7 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assertFalse(res.reply.startsWith("Yes"));
-      assertFalse(res.affirm);
+      assertFalse(res.critical);
       assertFalse(res.solved);
     });
     it("Is it drawn by a blind artist?", async (t) => {
@@ -137,7 +145,7 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("No"));
-      assertFalse(res.affirm);
+      assertFalse(res.critical);
       assertFalse(res.solved);
     });
     it("Did he die from a heart attack?", async (t) => {
@@ -146,7 +154,15 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("No"));
-      assertFalse(res.affirm);
+      assertFalse(res.critical);
+      assertFalse(res.solved);
+    });
+    it("Did he put the apple by himself?", async (t) => {
+      const res = await createReplyToQuestion({
+        puzzle: puzzle5,
+        question: t.name as ValidQuestion,
+      });
+      assert(res.reply.startsWith("No"));
       assertFalse(res.solved);
     });
   });
@@ -157,10 +173,10 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("Yes"));
-      assert(res.affirm);
+      assert(res.critical);
       assertFalse(res.solved);
     });
-    it("Are they bees?", async (t) => {
+    it("He is a beekeeper!", async (t) => {
       const res = await createReplyToQuestion({
         puzzle: puzzle1,
         question: t.name as ValidQuestion,
@@ -168,21 +184,12 @@ describe("createReplyToQuestion", () => {
           {
             question: "Does he watch creatures?" as ValidQuestion,
             reply: "Yes!" as ReplyToQuestion,
-            affirm: true,
+            critical: true,
           },
         ],
       });
       assert(res.reply.startsWith("Yes"));
-      assert(res.affirm);
-      assert(res.solved);
-    });
-    it("He is a beekeeper!", async (t) => {
-      const res = await createReplyToQuestion({
-        puzzle: puzzle1,
-        question: t.name as ValidQuestion,
-      });
-      assert(res.reply.startsWith("Yes"));
-      assert(res.affirm);
+      assert(res.critical);
       assert(res.solved);
     });
   });
