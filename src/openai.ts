@@ -614,7 +614,8 @@ Desired format: <Yes/No>.`,
   );
 
   // Ask ChatGPT for a completion
-  const comment = await createChatCompletion({
+  const comment = (critical || solved || yesno.split(" ").length <= 2)
+    ? await createChatCompletion({
     model: "gpt-3.5",
     messages: [
       user_init,
@@ -631,7 +632,8 @@ Desired format: <Yes/No>.`,
     .then((completion_comment) => {
       usages.push(completion_comment.usage);
       return ` ${completion_comment.choices[0].message.content}`;
-    });
+    })
+    : "";
 
   const reply = yesno + comment as ReplyToQuestion;
 
