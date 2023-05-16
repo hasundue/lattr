@@ -588,6 +588,9 @@ Desired format: <Yes/No>.`,
   // If the puzzle is solved, add a sentence to praise them in the reply.
   // If not, add a sentence to encourage them to ask another question.
   //
+  const comment_request = critical
+    ? "Add a comment to the reply"
+    : "Add a witty comment to the reply";
   const comment_content = solved
     ? "tells me that you think I have solved the puzzle"
     : critical
@@ -596,7 +599,7 @@ Desired format: <Yes/No>.`,
   const user_comment: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Add a comment to the reply, which ${comment_content}, in 40 characters or less.`,
+      `${comment_request}, which ${comment_content}, in 40 characters or less.`,
   };
 
   //
