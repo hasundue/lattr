@@ -155,7 +155,7 @@ export async function handleQuestions(
     chat_history.push({
       question: result_validation.question,
       reply: result_reply.reply,
-      replyType: result_reply.replyType,
+      critical: result_reply.critical,
     });
     usages.push(...result_reply.usages);
 
