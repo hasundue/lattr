@@ -3,6 +3,7 @@ import {
   Pipeline,
   Secret,
 } from "https://deno.land/x/cicada@v0.1.50/mod.ts";
+import $ from "https://deno.land/x/dax@0.31.1/mod.ts";
 
 const secrets = [
   "PRIVATE_KEY",
@@ -14,14 +15,6 @@ const test = new Job({
   name: "Test",
   image: "denoland/deno:1.33.3",
   steps: [
-    {
-      name: "Format",
-      run: "deno fmt --check",
-    },
-    {
-      name: "Lint",
-      run: "deno lint",
-    },
     {
       name: "Create .env",
       run: async () => {
@@ -35,13 +28,30 @@ const test = new Job({
       secrets,
     },
     {
+      name: "Format",
+      run: "deno fmt --check",
+    },
+    {
+      name: "Lint",
+      run: "deno lint",
+    },
+    {
       name: "Test",
       run: "deno test -A --quiet --coverage=./coverage",
     },
     {
-      name: "Upload coverage",
-      run:
-        "curl -Os https://uploader.codecov.io/latest/linux/codecov && chmod +x codecov && ./codecov",
+      name: "Upload coverage to Codecov",
+      run: async () => {
+        const res = await fetch(
+          "https://uploader.codecov.io/latest/linux/codecov",
+        );
+        await Deno.writeFile(
+          "./codecov",
+          new Uint8Array(await res.arrayBuffer()),
+        );
+        await $`chmod +x ./codecov`;
+        await $`./codecov`;
+      },
     },
   ],
 });
