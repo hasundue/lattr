@@ -432,18 +432,19 @@ Desired format: <Yes/No>.`,
 export type Chat = {
   question: ValidQuestion;
   reply: ReplyToQuestion;
-  replyType: ReplyType;
+  critical: boolean;
 };
 
 export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
 
 export type ReplyType = "affirmation" | "negation" | "neither";
 
-export type CreateReplyToQuestionResult = {
-  reply: ReplyToQuestion;
-  replyType: ReplyType;
-  solved: boolean;
-} & CompletionResult;
+export type CreateReplyToQuestionResult =
+  & Omit<Chat, "question">
+  & {
+    solved: boolean;
+  }
+  & CompletionResult;
 
 export async function createReplyToQuestion(args: {
   puzzle: Puzzle;
@@ -455,24 +456,14 @@ export async function createReplyToQuestion(args: {
   const { puzzle, question, context } = args;
   const usages: CompletionUsage[] = [];
 
-  const system_init: ChatCompletionRequestMessage = {
-    role: "system",
-    content: "You are an assistant of an online puzzle session.",
-  };
-
   const system_problem: ChatCompletionRequestMessage = {
-    role: "system",
-    content: `The ongoing puzzle: "${puzzle.problem}".`,
+    role: "assistant",
+    content: `Q: ${puzzle.problem}.`,
   };
 
   const system_answer: ChatCompletionRequestMessage = {
     role: "system",
-    content: `The answer: "${puzzle.answer}" (not revealed to participants).`,
-  };
-
-  const system_rules: ChatCompletionRequestMessage = {
-    role: "system",
-    content: `Participants ask you Yes/No questions to find the answer.`,
+    content: `A: ${puzzle.answer} (not revealed to participants).`,
   };
 
   const chat_context = context?.map((chat): ChatCompletionRequestMessage[] => [
@@ -494,10 +485,10 @@ export async function createReplyToQuestion(args: {
   const completion_yesno = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
-      system_init,
+      // system_init,
       system_problem,
       system_answer,
-      system_rules,
+      // system_rules,
       {
         role: "system",
         content: `Reply to the following messages about the puzzle.
@@ -514,44 +505,47 @@ Desired format: <Yes/No><./!>`,
   const assistant_yesno = completion_yesno.choices[0].message;
   const yesno = assistant_yesno.content;
 
-  const completion_classify = await createChatCompletion({
+  const completion_critical = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
+      system_problem,
+      system_answer,
+      ...chat_context,
       user_question,
       assistant_yesno,
       {
         role: "user",
-        content: `Classify the reply.
+        content:
+          `Does the last conversation reveal an important information about the puzzle?
 
-Desired format: <affirmation/negation/neither>`,
+Desired format: <Yes/No>.`,
       },
     ],
     temperature: 0,
-    stop: [",", "."],
+    stop: [",", ".", "!"],
   });
-  usages.push(completion_classify.usage);
+  usages.push(completion_critical.usage);
 
-  const replyType = completion_classify.choices[0].message.content
-    .toLowerCase() as ReplyType;
+  const critical = completion_critical.choices[0].message.content.startsWith(
+    "Yes",
+  );
 
-  const chat_affirmation =
-    context?.filter((chat) => chat.replyType === "affirmation")
-      .map((chat): ChatCompletionRequestMessage[] => [
-        {
-          role: "user",
-          content: chat.question,
-        },
-        {
-          role: "assistant",
-          content: chat.reply,
-        },
-      ]).flat() ?? [];
+  const chat_affirmation = context?.filter((chat) => chat.critical)
+    .map((chat): ChatCompletionRequestMessage[] => [
+      {
+        role: "user",
+        content: chat.question,
+      },
+      {
+        role: "assistant",
+        content: chat.reply,
+      },
+    ]).flat() ?? [];
 
-  const solved = replyType === "affirmation"
+  const solved = critical
     ? await createChatCompletion({
       model: "gpt-4",
       messages: [
-        system_init,
         system_problem,
         system_answer,
         ...chat_affirmation,
@@ -596,7 +590,7 @@ ${yesno} `,
     ? await createChatCompletion({
       model: "gpt-3.5",
       messages: [
-        system_init,
+        // system_init,
         system_problem,
         ...chat_context,
         user_question,
@@ -613,7 +607,7 @@ ${yesno} `,
 
   const reply = yesno + comment as ReplyToQuestion;
 
-  return { reply, replyType, solved, usages };
+  return { reply, critical, solved, usages };
 }
 
 export type ResultAnnounce = {

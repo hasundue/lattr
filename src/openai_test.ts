@@ -136,6 +136,7 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("Yes"));
+      assert(res.critical);
       assertFalse(res.solved);
     });
     it("Are they bees?", async (t) => {
@@ -146,11 +147,12 @@ describe("createReplyToQuestion", () => {
           {
             question: "Does he watch creatures?" as ValidQuestion,
             reply: "Yes!" as ReplyToQuestion,
-            replyType: "affirmation",
+            critical: true,
           },
         ],
       });
       assert(res.reply.startsWith("Yes"));
+      assert(res.critical);
       assert(res.solved);
     });
     it("He is a beekeeper!", async (t) => {
@@ -159,6 +161,7 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("Yes"));
+      assert(res.critical);
       assert(res.solved);
     });
   });
