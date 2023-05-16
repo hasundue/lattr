@@ -465,18 +465,14 @@ export async function createReplyToQuestion(args: {
 
   const user_init: ChatCompletionRequestMessage = {
     role: "user",
-    content:
-      "Create a puzzle. I'm asking you yes/no questions to solve it. Assume that the answer is not revealed to me.",
+    content: "Create a puzzle. I'm asking you yes/no questions to solve it.",
   };
 
-  const system_problem: ChatCompletionRequestMessage = {
+  const assistant_puzzle: ChatCompletionRequestMessage = {
     role: "assistant",
-    content: `Q: ${puzzle.problem}`,
-  };
+    content: `Q: ${puzzle.problem}
 
-  const system_answer: ChatCompletionRequestMessage = {
-    role: "assistant",
-    content: `A: ${puzzle.answer}`,
+A: ${puzzle.answer} (Assume that this is not revealed to me.)`,
   };
 
   const chat_context = context?.map((chat): ChatCompletionRequestMessage[] => [
@@ -499,16 +495,18 @@ export async function createReplyToQuestion(args: {
     model: "gpt-3.5",
     messages: [
       user_init,
-      system_problem,
-      system_answer,
+      assistant_puzzle,
+      ...chat_context,
       {
         role: "system",
-        content:
-          `Reply to the following messages. Don't say yes unless you're sure for 100%.
+        content: `Reply to the next message with one of the following options:
 
-Desired format: <Yes/No><./!>`,
+- Yes
+- No
+- Probably
+- Probably not
+- Not sure`,
       },
-      ...chat_context,
       user_question,
     ],
     temperature: 0,
@@ -529,8 +527,7 @@ Desired format: <Yes/No>.`,
     model: "gpt-3.5",
     messages: [
       user_init,
-      system_problem,
-      system_answer,
+      assistant_puzzle,
       // ...chat_context, // not sure if we should include the context here
       user_question,
       assistant_yesno,
@@ -561,15 +558,14 @@ Desired format: <Yes/No>.`,
       model: "gpt-3.5",
       messages: [
         user_init,
-        system_problem,
-        system_answer,
+        assistant_puzzle,
         ...chat_critical,
         user_question,
         assistant_yesno,
         {
           role: "user",
           content:
-            `Does the conversation above suggest that I've solved the puzzle?
+            `Does the conversation above reveal every detail of the answer?
 
 Desired format: <Yes/No>.`,
         },
@@ -591,7 +587,7 @@ Desired format: <Yes/No>.`,
   const comment_content = solved
     ? "tells me that you think I have solved the puzzle"
     : critical
-    ? "subtly suggests what the next question should be"
+    ? "subtly suggests what's the remaining mystery"
     : "encourages me";
   const user_comment: ChatCompletionRequestMessage = {
     role: "user",
@@ -613,27 +609,24 @@ ${yesno} `,
   );
 
   // Ask ChatGPT for a completion
-  const comment = solved || yesno.length < 5
-    ? await createChatCompletion({
-      model: "gpt-3.5",
-      messages: [
-        user_init,
-        system_problem,
-        system_answer,
-        ...chat_context,
-        user_question,
-        assistant_yesno,
-        user_comment,
-      ],
-      stop: ["\n"],
-      temperature: 1,
-      logit_bias,
-    })
-      .then((completion_comment) => {
-        usages.push(completion_comment.usage);
-        return ` ${completion_comment.choices[0].message.content}`;
-      })
-    : "";
+  const comment = await createChatCompletion({
+    model: "gpt-3.5",
+    messages: [
+      user_init,
+      assistant_puzzle,
+      ...chat_context,
+      user_question,
+      assistant_yesno,
+      user_comment,
+    ],
+    stop: ["\n"],
+    temperature: 1,
+    logit_bias,
+  })
+    .then((completion_comment) => {
+      usages.push(completion_comment.usage);
+      return ` ${completion_comment.choices[0].message.content}`;
+    });
 
   const reply = yesno + comment as ReplyToQuestion;
 

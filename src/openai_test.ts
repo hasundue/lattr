@@ -160,7 +160,7 @@ describe("createReplyToQuestion", () => {
         puzzle: puzzle4,
         question: t.name as ValidQuestion,
       });
-      assert(res.reply.startsWith("No"));
+      assertFalse(res.reply.startsWith("Yes"));
       assertFalse(res.critical);
       assertFalse(res.solved);
     });
@@ -197,7 +197,7 @@ describe("createReplyToQuestion", () => {
       });
       assert(res.reply.startsWith("Yes"));
       assert(res.critical);
-      assert(res.solved);
+      assertFalse(res.solved);
     });
   });
 });
@@ -254,23 +254,35 @@ function question(
   });
 }
 
-describe("Puzzle in Japanese", () => {
-  describe("Puzzle 1: 夏祭りの幽霊犬", () => {
-    const puzzle: Puzzle = {
-      problem:
-        "ある村では毎年夏に祭りが行われます。祭りの日にだけ、消えたはずの幽霊犬が姿を現し、村人たちを驚かせます。村長は不思議に思い、ある計画を立てました。次の祭の夜、幽霊犬は現れず、 祭りは平和に終わりました。どうして幽霊犬が現れなくなったのでしょうか？",
-      answer:
-        "村長は村に住むガラス職人に幽霊犬の形をしたガラス細工を作らせ、祭りの日にだけ緑色の不思議な光でガラス細工を照らした。村人たちは幽霊犬と勘違いし驚いていた。しかし村長は照明の設計を変更し、幽霊犬の形が見えなくなったため、現れなくなった。",
-    };
-    question(puzzle, "幽霊犬は死にましたか？", {
-      yes: false,
-      critical: false,
-      solved: false,
-    });
-    question(puzzle, "幽霊犬は作りものでしたか？", {
-      yes: true,
-      critical: true,
-      solved: false,
-    });
+describe("夏祭りの幽霊犬", () => {
+  const puzzle: Puzzle = {
+    problem:
+      "ある村では毎年夏に祭りが行われます。祭りの日にだけ、消えたはずの幽霊犬が姿を現し、村人たちを驚かせます。村長は不思議に思い、ある計画を立てました。次の祭の夜、幽霊犬は現れず、 祭りは平和に終わりました。どうして幽霊犬が現れなくなったのでしょうか？",
+    answer:
+      "村長は村に住むガラス職人に幽霊犬の形をしたガラス細工を作らせ、祭りの日にだけ緑色の不思議な光でガラス細工を照らした。村人たちは幽霊犬と勘違いし驚いていた。しかし村長は照明の設計を変更し、幽霊犬の形が見えなくなったため、現れなくなった。",
+  };
+  question(puzzle, "幽霊犬は死にましたか？", {
+    yes: false,
+    critical: false,
+    solved: false,
+  });
+  question(puzzle, "幽霊犬は作りものでしたか？", {
+    yes: true,
+    critical: true,
+    solved: false,
+  });
+});
+
+describe("An empty art gallery", () => {
+  const puzzle = {
+    problem:
+      "In an empty art gallery, a closed box is hanging from the ceiling. There are no windows, and the only door is sealed shut. A guard hears a loud crash. When he enters, the box is open, revealing a beautiful statue. How did the box unlock?",
+    answer:
+      "The artist intended for the box to open at a specific time. He/she designed the box with ice as the lock mechanism. When the ice melted at the anticipated time, the box open and the crash was the sound of the melting ice hitting the floor.",
+  };
+  question(puzzle, "It was on a timer.", {
+    yes: true,
+    critical: true,
+    solved: false,
   });
 });
