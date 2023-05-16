@@ -129,8 +129,8 @@ export class RelayPool {
       });
 
       relay.on("error", async () => {
+        relay.connected = false;
         console.error("Connection error:", relay.url);
-        relay.close();
         await this.reconnect(relay);
       });
 
@@ -139,9 +139,7 @@ export class RelayPool {
   }
 
   private async reconnect(relay: RelayConn) {
-    console.log(`Reconnecting to ${relay.url}...`);
     await relay.connect();
-
     // Restart all subscriptions to the relay.
     if (relay.read) {
       this.subs.forEach((sub) => sub.restart(relay));
