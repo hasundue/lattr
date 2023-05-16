@@ -73,10 +73,12 @@ export async function applyModeration(
   return { approved: false, categories };
 }
 
+type AvailableModel = "gpt-3.5" | "gpt-4";
+
 type CompletionRequest = Replace<
   CreateChatCompletionRequest,
   "model",
-  "gpt-3.5" | "gpt-4"
+  AvailableModel
 >;
 
 /**
@@ -202,11 +204,13 @@ export type Puzzle = {
   answer: string;
 };
 
-export async function createPuzzle(): Promise<Puzzle & CompletionResult> {
+export async function createPuzzle(
+  opts?: { model?: AvailableModel },
+): Promise<Puzzle & CompletionResult> {
   console.log("Asking ChatGPT for a puzzle...\n");
 
   const data = await createChatCompletion({
-    model: "gpt-4",
+    model: opts?.model ?? "gpt-4",
     messages: [
       {
         role: "system",
