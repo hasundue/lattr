@@ -9,6 +9,7 @@ import {
   CreateModerationResponseResultsInnerCategories,
   OpenAIApi,
 } from "npm:openai@3.2.1";
+import { encode as encodeToTokens } from "npm:gpt-3-encoder";
 import { Brand, Replace, Require } from "./utils.ts";
 import { NostrPubkey } from "./nostr.ts";
 
@@ -577,31 +578,37 @@ Desired format: <Yes/No>.`,
     })
     : false;
 
+  //
   // Create an additional comment to the reply if it is just a Yes/No.
+  //
   // If the puzzle is solved, add a sentence to praise them in the reply.
   // If not, add a sentence to encourage them to ask another question.
-  const user_comment: ChatCompletionRequestMessage = solved
-    ? {
-      role: "user",
-      content:
-        `Add a witty comment to the reply, which tells the questioner that you think they solved the puzzle, in 35 characters or less.
-
-${yesno} `,
-    }
+  //
+  const comment_content = solved
+    ? "tells me that you think I have solved the puzzle"
     : critical
-    ? {
-      role: "user",
-      content:
-        `Add a witty comment to the reply, which subtly suggests what the next question should be, in 70 characters or less.`,
-    }
-    : {
-      role: "user",
-      content:
-        `Add a witty comment to the reply, which encourages me, in 35 characters or less.
+    ? "subtly suggests what the next question should be"
+    : "encourages me";
+  const user_comment: ChatCompletionRequestMessage = {
+    role: "user",
+    content:
+      `Add a witty comment to the reply, which ${comment_content}, in 40 characters or less.
 
 ${yesno} `,
-    };
+  };
 
+  //
+  // Add a logit bias to avoid repeating words that have already appeared in the context.
+  //
+  const tokens_appeared = new Set(encodeToTokens(
+    context?.map((chat) => chat.reply).join(" ") ?? "",
+  ));
+
+  const logit_bias = Object.fromEntries(
+    Array.from(tokens_appeared).map((token) => [token, -1]),
+  );
+
+  // Ask ChatGPT for a completion
   const comment = solved || yesno.length < 5
     ? await createChatCompletion({
       model: "gpt-3.5",
@@ -616,7 +623,7 @@ ${yesno} `,
       ],
       stop: ["\n"],
       temperature: 1,
-      frequency_penalty: 1,
+      logit_bias,
     })
       .then((completion_comment) => {
         usages.push(completion_comment.usage);

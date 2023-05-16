@@ -183,7 +183,7 @@ describe("createReplyToQuestion", () => {
         context: [
           {
             question: "Does he watch creatures?" as ValidQuestion,
-            reply: "Yes!" as ReplyToQuestion,
+            reply: "Yes! Keep trying!" as ReplyToQuestion,
             critical: true,
           },
         ],

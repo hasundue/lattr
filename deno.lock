@@ -455,6 +455,7 @@
   },
   "npm": {
     "specifiers": {
+      "gpt-3-encoder": "gpt-3-encoder@1.1.4",
       "langchain": "langchain@0.0.68_zod@3.21.4",
       "nostr-tools": "nostr-tools@1.10.1",
       "openai@3.2.1": "openai@3.2.1"
@@ -571,6 +572,10 @@
           "combined-stream": "combined-stream@1.0.8",
           "mime-types": "mime-types@2.1.35"
         }
+      },
+      "gpt-3-encoder@1.1.4": {
+        "integrity": "sha512-fSQRePV+HUAhCn7+7HL7lNIXNm6eaFWFbNLOOGtmSJ0qJycyQvj60OvRlH7mee8xAMjBDNRdMXlMwjAbMTDjkg==",
+        "dependencies": {}
       },
       "is-any-array@2.0.1": {
         "integrity": "sha512-UtilS7hLRu++wb/WBAw9bNuP1Eg04Ivn1vERJck8zJthEvXCBEBpGR/33u/xLKWEQf95803oalHrVDptcAvFdQ==",
