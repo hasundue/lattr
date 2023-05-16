@@ -116,7 +116,10 @@ export async function handleQuestions(
       continue;
     }
 
-    console.log("This event is a direct reply to me. Handle it...", event_recieved);
+    console.log(
+      "This event is a direct reply to me. Handle it...",
+      event_recieved,
+    );
 
     // Make sure the message is not harmful
     const result_moderation = await applyModeration(event_recieved.content);
