@@ -625,7 +625,7 @@ Desired format: <Yes/No>.`,
       user_comment,
     ],
     stop: ["\n"],
-    top_p: (!solved && critical) ? 0.1 : 0.5,
+    temperature: (!solved && critical) ? 0 : 1,
     logit_bias,
   })
     .then((completion_comment) => {
