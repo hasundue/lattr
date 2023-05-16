@@ -48,6 +48,13 @@ const puzzle3: Puzzle = {
     "The painting is a 3D optical illusion; it appears to continue outward beyond its frame, merging with the surrounding environment. The unknown artist cleverly incorporated light, shadow, and perspective to achieve this effect, leaving observers intrigued.",
 };
 
+const puzzle4: Puzzle = {
+  "problem":
+    "A detective enters an oddly shaped house with no windows. Inside, she finds a dead man surrounded by 53 bicycles. The man died from natural causes. What was the cause of the unusual scene?",
+  "answer":
+    "The man was a card player involved in a high-stakes poker game. When other players accused him of cheating, he grabbed a deck and fled into the house. The '53 bicycles' were actually cards from the Bicycle brand deck, including a joker.",
+};
+
 describe("createIntroduction", () => {
   it("create a random introduction of a puzzle1", async () => {
     const res = await createIntroduction({ puzzle: puzzle1 });
@@ -111,7 +118,8 @@ describe("createReplyToQuestion", () => {
         puzzle: puzzle1,
         question: t.name as ValidQuestion,
       });
-      assert(res.reply.startsWith("No"));
+      assertFalse(res.reply.startsWith("Yes"));
+      assertFalse(res.affirm);
       assertFalse(res.solved);
     });
     it("Did he timeleap?", async (t) => {
@@ -120,6 +128,7 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assertFalse(res.reply.startsWith("Yes"));
+      assertFalse(res.affirm);
       assertFalse(res.solved);
     });
     it("Is it drawn by a blind artist?", async (t) => {
@@ -128,6 +137,16 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("No"));
+      assertFalse(res.affirm);
+      assertFalse(res.solved);
+    });
+    it("Did he die from a heart attack?", async (t) => {
+      const res = await createReplyToQuestion({
+        puzzle: puzzle4,
+        question: t.name as ValidQuestion,
+      });
+      assert(res.reply.startsWith("No"));
+      assertFalse(res.affirm);
       assertFalse(res.solved);
     });
   });
@@ -138,7 +157,7 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("Yes"));
-      assert(res.critical);
+      assert(res.affirm);
       assertFalse(res.solved);
     });
     it("Are they bees?", async (t) => {
@@ -149,12 +168,12 @@ describe("createReplyToQuestion", () => {
           {
             question: "Does he watch creatures?" as ValidQuestion,
             reply: "Yes!" as ReplyToQuestion,
-            critical: true,
+            affirm: true,
           },
         ],
       });
       assert(res.reply.startsWith("Yes"));
-      assert(res.critical);
+      assert(res.affirm);
       assert(res.solved);
     });
     it("He is a beekeeper!", async (t) => {
@@ -163,7 +182,7 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("Yes"));
-      assert(res.critical);
+      assert(res.affirm);
       assert(res.solved);
     });
   });
