@@ -56,7 +56,7 @@ const test = new Job({
           new Uint8Array(await res.arrayBuffer()),
         );
         await $`chmod +x ./codecov`;
-        await $`./codecov -t ${await secret.value()} -f /app/coverage`;
+        await $`./codecov -t ${await secret.value()} -R /app`;
       },
       secrets,
     },
