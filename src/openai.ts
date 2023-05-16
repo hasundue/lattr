@@ -436,7 +436,7 @@ Desired format: <Yes/No>.`,
 export type Chat = {
   question: ValidQuestion;
   reply: ReplyToQuestion;
-  critical: boolean;
+  affirm: boolean;
 };
 
 export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
@@ -460,7 +460,7 @@ export async function createReplyToQuestion(args: {
   const { puzzle, question, context } = args;
   const usages: CompletionUsage[] = [];
 
-  const system_problem: ChatCompletionRequestMessage = {
+  const assistant_problem: ChatCompletionRequestMessage = {
     role: "assistant",
     content: `Q: ${puzzle.problem}.`,
   };
@@ -489,13 +489,12 @@ export async function createReplyToQuestion(args: {
   const completion_yesno = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
-      // system_init,
-      system_problem,
+      assistant_problem,
       system_answer,
-      // system_rules,
       {
         role: "system",
-        content: `Reply to the following messages about the puzzle.
+        content:
+          `Based on the sentences above, reply to the following messages about the puzzle. Do not answer with Yes unless you are sure for over 90%.
 
 Desired format: <Yes/No><./!>`,
       },
@@ -509,32 +508,32 @@ Desired format: <Yes/No><./!>`,
   const assistant_yesno = completion_yesno.choices[0].message;
   const yesno = assistant_yesno.content;
 
-  const completion_critical = await createChatCompletion({
-    model: "gpt-3.5",
-    messages: [
-      system_problem,
-      system_answer,
-      ...chat_context,
-      user_question,
-      assistant_yesno,
-      {
-        role: "user",
-        content:
-          `Does the last exchange of conversation reveal any information described in the answer?
+  const user_affirm: ChatCompletionRequestMessage = {
+    role: "user",
+    content: `Did your reply affirm the question from the user?
 
 Desired format: <Yes/No>.`,
-      },
+  };
+
+  const completion_affirm = await createChatCompletion({
+    model: "gpt-3.5",
+    messages: [
+      assistant_problem,
+      system_answer,
+      // ...chat_context,
+      user_question,
+      assistant_yesno,
+      user_affirm,
     ],
     temperature: 0,
     stop: [",", ".", "!"],
   });
-  usages.push(completion_critical.usage);
+  usages.push(completion_affirm.usage);
 
-  const critical = completion_critical.choices[0].message.content.startsWith(
-    "Yes",
-  );
+  const assistant_affirm = completion_affirm.choices[0].message;
+  const affirm = assistant_affirm.content.startsWith("Yes");
 
-  const chat_affirmation = context?.filter((chat) => chat.critical)
+  const chat_affirmation = context?.filter((chat) => chat.affirm)
     .map((chat): ChatCompletionRequestMessage[] => [
       {
         role: "user",
@@ -546,11 +545,11 @@ Desired format: <Yes/No>.`,
       },
     ]).flat() ?? [];
 
-  const solved = critical
+  const solved = affirm
     ? await createChatCompletion({
       model: "gpt-4",
       messages: [
-        system_problem,
+        assistant_problem,
         system_answer,
         ...chat_affirmation,
         user_question,
@@ -594,16 +593,18 @@ ${yesno} `,
     ? await createChatCompletion({
       model: "gpt-3.5",
       messages: [
-        // system_init,
-        system_problem,
+        assistant_problem,
+        system_answer,
         ...chat_context,
         user_question,
         assistant_yesno,
+        user_affirm,
+        assistant_affirm,
         user_comment,
       ],
       stop: ["\n"],
       temperature: 1,
-      presence_penalty: 1,
+      frequency_penalty: 1,
     })
       .then((completion_comment) => {
         usages.push(completion_comment.usage);
@@ -613,7 +614,7 @@ ${yesno} `,
 
   const reply = yesno + comment as ReplyToQuestion;
 
-  return { reply, critical, solved, usages };
+  return { reply, affirm, solved, usages };
 }
 
 export type ResultAnnounce = {
