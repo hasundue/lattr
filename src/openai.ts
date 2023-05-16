@@ -506,7 +506,11 @@ A: ${puzzle.answer}`,
 - No
 - Probably
 - Probably not
-- Not sure`,
+- Not sure
+
+Do not include any other text in your reply.
+
+Desired format: <One of the options><./!>`,
       },
       user_question,
     ],
