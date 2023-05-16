@@ -465,14 +465,15 @@ export async function createReplyToQuestion(args: {
 
   const user_init: ChatCompletionRequestMessage = {
     role: "user",
-    content: "Create a puzzle. I'm asking you yes/no questions to solve it.",
+    content:
+      "Create a puzzle. I'm asking you yes/no questions to solve it. Assume that the answer of the puzzle is not revealed to me.",
   };
 
   const assistant_puzzle: ChatCompletionRequestMessage = {
     role: "assistant",
     content: `Q: ${puzzle.problem}
 
-A: ${puzzle.answer} (Assume that this is not revealed to me.)`,
+A: ${puzzle.answer}`,
   };
 
   const chat_context = context?.map((chat): ChatCompletionRequestMessage[] => [
@@ -587,14 +588,12 @@ Desired format: <Yes/No>.`,
   const comment_content = solved
     ? "tells me that you think I have solved the puzzle"
     : critical
-    ? "subtly suggests what's the remaining mystery"
+    ? "subtly suggests what I should ask next to find the remaining mystery in the puzzle"
     : "encourages me";
   const user_comment: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Add a witty comment to the reply, which ${comment_content}, in 40 characters or less.
-
-${yesno} `,
+      `Add a witty comment to the reply, which ${comment_content}, in 40 characters or less.`,
   };
 
   //

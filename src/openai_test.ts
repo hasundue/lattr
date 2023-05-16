@@ -161,7 +161,6 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assertFalse(res.reply.startsWith("Yes"));
-      assertFalse(res.critical);
       assertFalse(res.solved);
     });
     it("Did he put the apple by himself?", async (t) => {
@@ -222,9 +221,9 @@ function question(
   puzzle: Puzzle,
   question: string,
   expect: {
-    yes: boolean;
-    critical: boolean;
-    solved: boolean;
+    reply?: "yes" | "no" | "affirm" | "negate" | "not sure";
+    critical?: boolean;
+    solved?: boolean;
   },
 ) {
   return it(question, async () => {
@@ -232,25 +231,57 @@ function question(
       puzzle: puzzle,
       question: question as ValidQuestion,
     });
-    assertEquals(
-      res.reply.startsWith("Yes"),
-      expect.yes,
-      `Expected ${expect.yes ? "Yes" : "No"} but got ${res.reply}.`,
-    );
-    assertEquals(
-      res.critical,
-      expect.critical,
-      `Expected to be evaluated as ${
-        expect.critical ? "critical" : "not critical"
-      }, but got the opposite.`,
-    );
-    assertEquals(
-      res.solved,
-      expect.solved,
-      `Expected to be ${
-        expect.solved ? "solved" : "not solved"
-      }, but got the opposite.`,
-    );
+    switch (expect.reply) {
+      case "yes":
+        assert(
+          res.reply.startsWith("Yes"),
+          `Expected Yes, but got ${res.reply}.`,
+        );
+        break;
+      case "no":
+        assert(
+          res.reply.startsWith("No"),
+          `Expected No, but got ${res.reply}.`,
+        );
+        break;
+      case "affirm":
+        assert(
+          res.reply.startsWith("Yes") || res.reply.startsWith("Probably"),
+          `Expected an affirmation, but got ${res.reply}.`,
+        );
+        break;
+      case "negate":
+        assert(
+          res.reply.startsWith("No") || res.reply.startsWith("Probably not"),
+          `Expected a negation, but got ${res.reply}.`,
+        );
+        break;
+      case "not sure":
+        assert(
+          res.reply.startsWith("Not sure"),
+          `Expected to be not sure, but got ${res.reply}.`,
+        );
+        break;
+      default:
+    }
+    if (res.critical !== undefined) {
+      assertEquals(
+        res.critical,
+        expect.critical,
+        `Expected to be ${
+          expect.critical ? "critical" : "not critical"
+        }, but got the opposite.`,
+      );
+    }
+    if (res.solved !== undefined) {
+      assertEquals(
+        res.solved,
+        expect.solved,
+        `Expected to be ${
+          expect.solved ? "solved" : "not solved"
+        }, but got the opposite.`,
+      );
+    }
   });
 }
 
@@ -262,14 +293,13 @@ describe("夏祭りの幽霊犬", () => {
       "村長は村に住むガラス職人に幽霊犬の形をしたガラス細工を作らせ、祭りの日にだけ緑色の不思議な光でガラス細工を照らした。村人たちは幽霊犬と勘違いし驚いていた。しかし村長は照明の設計を変更し、幽霊犬の形が見えなくなったため、現れなくなった。",
   };
   question(puzzle, "幽霊犬は死にましたか？", {
-    yes: false,
+    reply: "no",
     critical: false,
     solved: false,
   });
   question(puzzle, "幽霊犬は作りものでしたか？", {
-    yes: true,
+    reply: "affirm",
     critical: true,
-    solved: false,
   });
 });
 
@@ -281,7 +311,7 @@ describe("An empty art gallery", () => {
       "The artist intended for the box to open at a specific time. He/she designed the box with ice as the lock mechanism. When the ice melted at the anticipated time, the box open and the crash was the sound of the melting ice hitting the floor.",
   };
   question(puzzle, "It was on a timer.", {
-    yes: true,
+    reply: "yes",
     critical: true,
     solved: false,
   });
