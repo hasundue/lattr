@@ -20,16 +20,14 @@ import {
 
 const env_CI = Deno.env.get("CI") ? true : false;
 
-describe("createPuzzle", () => {
-  const model = env_CI ? "gpt-3.5" : "gpt-4";
-
+describe("createPuzzle", { ignore: env_CI }, () => {
   it("create a random puzzle", async () => {
-    const puzzle = await createPuzzle({ model });
+    const puzzle = await createPuzzle();
     assert(puzzle);
   });
 
   it("create a random puzzle in Japanese", async () => {
-    const puzzle = await createPuzzle({ model, lang: "Japanese" });
+    const puzzle = await createPuzzle({ lang: "Japanese" });
     assert(puzzle);
   });
 });
