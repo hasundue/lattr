@@ -594,12 +594,13 @@ Desired format: <Yes/No>.`,
   const comment_content = solved
     ? "tells me that you think I have solved the puzzle"
     : critical
-    ? "subtly suggests which detail of the answer still remains unrevealed during the conversation"
-    : "encourages me";
+    ? "subtly suggests what I should figure out next, which still remains unrevealed during the conversation"
+    : "subtly provides a hint to the puzzle without revealing specific information";
+  const comment_length = critical ? 70 : 40;
   const user_comment: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `${comment_request}, which ${comment_content}, in 40 characters or less.`,
+      `${comment_request}, which ${comment_content}, in ${comment_length} characters or less.`,
   };
 
   //
@@ -626,7 +627,7 @@ Desired format: <Yes/No>.`,
       user_comment,
     ],
     stop: ["\n"],
-    temperature: (!solved && critical) ? 0 : 1,
+    temperature: solved ? 1 : 0.2,
     logit_bias,
   })
     .then((completion_comment) => {
