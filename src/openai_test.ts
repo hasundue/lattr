@@ -18,9 +18,11 @@ import {
   ValidQuestion,
 } from "./openai.ts";
 
+const env_CI = Deno.env.get("CI") ? true : false;
+
 describe("createPuzzle", () => {
   it("create a random puzzle", async () => {
-    const puzzle = await createPuzzle();
+    const puzzle = await createPuzzle({ model: env_CI ? "gpt-3.5" : "gpt-4" });
     assert(puzzle);
   });
 });
