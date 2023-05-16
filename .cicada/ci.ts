@@ -59,6 +59,7 @@ const test = new Job({
 export default new Pipeline([test], {
   name: "CI",
   on: {
+    push: ["main"],
     pullRequest: ["main"],
   },
 });
