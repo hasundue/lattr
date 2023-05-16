@@ -227,7 +227,8 @@ export async function createPuzzle(
 
 Requirements:
 - The problem should present an unusual scenario or situation with a challenging mystery.
-- Readers must find an unexpected story behind it, which elegantly solves the mystery without significant inconsistency.
+- Readers must find an unexpected story behind it, which solves the mystery without any contradiction.
+- The puzzle should require creative thinking to solve.
 - The last sentence of the problem must be a simple and brief question.
 
 Desired format: 
