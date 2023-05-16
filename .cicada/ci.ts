@@ -37,11 +37,17 @@ const test = new Job({
     },
     {
       name: "Test",
-      run: "deno test -A --quiet --coverage=./coverage",
+      run: "deno test -A --quiet --coverage=/app/coverage",
     },
     {
       name: "Upload coverage to Codecov",
       run: async () => {
+        const secret = secrets.find((secret) =>
+          secret.name === "CODECOV_TOKEN"
+        );
+        if (!secret) {
+          throw new Error("CODECOV_TOKEN not found");
+        }
         const res = await fetch(
           "https://uploader.codecov.io/latest/linux/codecov",
         );
@@ -50,8 +56,9 @@ const test = new Job({
           new Uint8Array(await res.arrayBuffer()),
         );
         await $`chmod +x ./codecov`;
-        await $`./codecov`;
+        await $`./codecov -t ${await secret.value()} -f /app/coverage`;
       },
+      secrets,
     },
   ],
 });
