@@ -501,15 +501,9 @@ A: ${puzzle.answer}`,
       ...chat_context,
       {
         role: "system",
-        content: `Reply to the next message with one of the following options:
+        content: `Reply to the next message based on the information given in the puzzle.
 
-- Yes
-- No
-- Probably
-- Probably not
-- Not sure
-
-Desired format: <One of the options><./!>`,
+Desired format: <Yes/No><./!>`,
       },
       user_question,
     ],
@@ -588,9 +582,9 @@ Desired format: <Yes/No>.`,
   // If the puzzle is solved, add a sentence to praise them in the reply.
   // If not, add a sentence to encourage them to ask another question.
   //
-  const comment_request = critical
-    ? "Add a comment to the reply"
-    : "Add a witty comment to the reply";
+  const comment_style = critical
+    ? "a comment"
+    : "a witty comment";
   const comment_content = solved
     ? "tells me that you think I have solved the puzzle"
     : critical
@@ -600,7 +594,7 @@ Desired format: <Yes/No>.`,
   const user_comment: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `${comment_request}, which ${comment_content}, in ${comment_length} characters or less.`,
+      `Add ${comment_style} to the reply, which ${comment_content}, in ${comment_length} characters or less.`,
   };
 
   //
