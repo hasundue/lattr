@@ -436,12 +436,10 @@ Desired format: <Yes/No>.`,
 export type Chat = {
   question: ValidQuestion;
   reply: ReplyToQuestion;
-  affirm: boolean;
+  critical: boolean;
 };
 
 export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
-
-export type ReplyType = "affirmation" | "negation" | "neither";
 
 export type CreateReplyToQuestionResult =
   & Omit<Chat, "question">
@@ -460,14 +458,20 @@ export async function createReplyToQuestion(args: {
   const { puzzle, question, context } = args;
   const usages: CompletionUsage[] = [];
 
-  const assistant_problem: ChatCompletionRequestMessage = {
+  const user_init: ChatCompletionRequestMessage = {
+    role: "user",
+    content:
+      "Create a puzzle. I'm asking you yes/no questions to solve it. Assume that the answer is not revealed to me.",
+  };
+
+  const system_problem: ChatCompletionRequestMessage = {
     role: "assistant",
-    content: `Q: ${puzzle.problem}.`,
+    content: `Q: ${puzzle.problem}`,
   };
 
   const system_answer: ChatCompletionRequestMessage = {
-    role: "system",
-    content: `A: ${puzzle.answer} (not revealed to participants).`,
+    role: "assistant",
+    content: `A: ${puzzle.answer}`,
   };
 
   const chat_context = context?.map((chat): ChatCompletionRequestMessage[] => [
@@ -489,12 +493,13 @@ export async function createReplyToQuestion(args: {
   const completion_yesno = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
-      assistant_problem,
+      user_init,
+      system_problem,
       system_answer,
       {
         role: "system",
         content:
-          `Based on the sentences above, reply to the following messages about the puzzle. Do not answer with Yes unless you are sure for over 90%.
+          `Reply to the following messages. Don't say yes unless you're sure for 100%.
 
 Desired format: <Yes/No><./!>`,
       },
@@ -508,32 +513,33 @@ Desired format: <Yes/No><./!>`,
   const assistant_yesno = completion_yesno.choices[0].message;
   const yesno = assistant_yesno.content;
 
-  const user_affirm: ChatCompletionRequestMessage = {
+  const user_critical: ChatCompletionRequestMessage = {
     role: "user",
-    content: `Did your reply affirm the question from the user?
+    content: `Do you think that I have found a new piece of the answer?
 
 Desired format: <Yes/No>.`,
   };
 
-  const completion_affirm = await createChatCompletion({
+  const completion_critical = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
-      assistant_problem,
+      user_init,
+      system_problem,
       system_answer,
-      // ...chat_context,
+      // ...chat_context, // not sure if we should include the context here
       user_question,
       assistant_yesno,
-      user_affirm,
+      user_critical,
     ],
     temperature: 0,
     stop: [",", ".", "!"],
   });
-  usages.push(completion_affirm.usage);
+  usages.push(completion_critical.usage);
 
-  const assistant_affirm = completion_affirm.choices[0].message;
-  const affirm = assistant_affirm.content.startsWith("Yes");
+  const assistant_critical = completion_critical.choices[0].message;
+  const critical = assistant_critical.content.startsWith("Yes");
 
-  const chat_affirmation = context?.filter((chat) => chat.affirm)
+  const chat_critical = context?.filter((chat) => chat.critical)
     .map((chat): ChatCompletionRequestMessage[] => [
       {
         role: "user",
@@ -545,24 +551,25 @@ Desired format: <Yes/No>.`,
       },
     ]).flat() ?? [];
 
-  const solved = affirm
+  const solved = critical
     ? await createChatCompletion({
-      model: "gpt-4",
+      model: "gpt-3.5",
       messages: [
-        assistant_problem,
+        user_init,
+        system_problem,
         system_answer,
-        ...chat_affirmation,
+        ...chat_critical,
         user_question,
         assistant_yesno,
         {
           role: "user",
           content:
-            `Does the conversation above suggest that the participants solved the puzzle?
+            `Does the conversation above suggest that I've solved the puzzle?
 
 Desired format: <Yes/No>.`,
         },
       ],
-      stop: [".", ","],
+      stop: [".", ",", "!"],
       temperature: 0,
     }).then((completion_solved) => {
       usages.push(completion_solved.usage);
@@ -577,14 +584,20 @@ Desired format: <Yes/No>.`,
     ? {
       role: "user",
       content:
-        `Add a brief sentence to the reply, which tells the questioner that they solved the puzzle, in 70 characters or less.
+        `Add a witty comment to the reply, which tells the questioner that you think they solved the puzzle, in 35 characters or less.
 
 ${yesno} `,
+    }
+    : critical
+    ? {
+      role: "user",
+      content:
+        `Add a witty comment to the reply, which subtly suggests what the next question should be, in 70 characters or less.`,
     }
     : {
       role: "user",
       content:
-        `Add a witty comment to the reply to encourage the questioner, in 35 characters or less.
+        `Add a witty comment to the reply, which encourages me, in 35 characters or less.
 
 ${yesno} `,
     };
@@ -593,13 +606,12 @@ ${yesno} `,
     ? await createChatCompletion({
       model: "gpt-3.5",
       messages: [
-        assistant_problem,
+        user_init,
+        system_problem,
         system_answer,
         ...chat_context,
         user_question,
         assistant_yesno,
-        user_affirm,
-        assistant_affirm,
         user_comment,
       ],
       stop: ["\n"],
@@ -614,7 +626,7 @@ ${yesno} `,
 
   const reply = yesno + comment as ReplyToQuestion;
 
-  return { reply, affirm, solved, usages };
+  return { reply, critical, solved, usages };
 }
 
 export type ResultAnnounce = {
