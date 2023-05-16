@@ -158,7 +158,7 @@ describe("createReplyToQuestion", () => {
         puzzle: puzzle4,
         question: t.name as ValidQuestion,
       });
-      assertFalse(res.reply.startsWith("Yes"));
+      assert(res.reply.startsWith("Yes"));
       assertFalse(res.solved);
     });
     it("Did he put the apple by himself?", async (t) => {
