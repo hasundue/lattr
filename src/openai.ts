@@ -205,10 +205,14 @@ export type Puzzle = {
   answer: string;
 };
 
+export type AvailableLanguage = "English" | "Japanese";
+
 export async function createPuzzle(
-  opts?: { model?: AvailableModel },
+  opts?: { model?: AvailableModel; lang?: AvailableLanguage },
 ): Promise<Puzzle & CompletionResult> {
   console.log("Asking ChatGPT for a puzzle...\n");
+
+  const lang = opts?.lang ?? "English";
 
   const data = await createChatCompletion({
     model: opts?.model ?? "gpt-4",
@@ -219,7 +223,7 @@ export async function createPuzzle(
       },
       {
         role: "user",
-        content: `Create an unique and interesting puzzle.
+        content: `Create an unique and interesting puzzle in ${lang}.
 
 Requirements:
 - The problem should present an unusual scenario or situation with a challenging mystery.

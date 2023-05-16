@@ -21,8 +21,15 @@ import {
 const env_CI = Deno.env.get("CI") ? true : false;
 
 describe("createPuzzle", () => {
+  const model = env_CI ? "gpt-3.5" : "gpt-4";
+
   it("create a random puzzle", async () => {
-    const puzzle = await createPuzzle({ model: env_CI ? "gpt-3.5" : "gpt-4" });
+    const puzzle = await createPuzzle({ model });
+    assert(puzzle);
+  });
+
+  it("create a random puzzle in Japanese", async () => {
+    const puzzle = await createPuzzle({ model, lang: "Japanese" });
     assert(puzzle);
   });
 });
@@ -208,5 +215,62 @@ describe("createCloseAnnounce", () => {
   it("create a random announcement of a close", async () => {
     const res = await createCloseAnnounce();
     assert(res);
+  });
+});
+
+function question(
+  puzzle: Puzzle,
+  question: string,
+  expect: {
+    yes: boolean;
+    critical: boolean;
+    solved: boolean;
+  },
+) {
+  return it(question, async () => {
+    const res = await createReplyToQuestion({
+      puzzle: puzzle,
+      question: question as ValidQuestion,
+    });
+    assertEquals(
+      res.reply.startsWith("Yes"),
+      expect.yes,
+      `Expected ${expect.yes ? "Yes" : "No"} but got ${res.reply}.`,
+    );
+    assertEquals(
+      res.critical,
+      expect.critical,
+      `Expected to be evaluated as ${
+        expect.critical ? "critical" : "not critical"
+      }, but got the opposite.`,
+    );
+    assertEquals(
+      res.solved,
+      expect.solved,
+      `Expected to be ${
+        expect.solved ? "solved" : "not solved"
+      }, but got the opposite.`,
+    );
+  });
+}
+
+describe("Puzzle in Japanese", () => {
+  describe("Puzzle 1: 夏祭りの幽霊犬", () => {
+    const puzzle: Puzzle = {
+      problem:
+        "ある村では毎年夏に祭りが行われます。祭りの日にだけ、消えたはずの幽霊犬が姿を現し、村人たちを驚かせます。村長は不思議に思い、ある計画を立てました。次の祭の夜、幽霊犬は現れず、 祭りは平和に終わりました。どうして幽霊犬が現れなくなったのでしょうか？",
+      answer:
+        "村長は村に住むガラス職人に幽霊犬の形をしたガラス細工を作らせ、祭りの日にだけ緑色の不思議な光でガラス細工を照らした。村人たちは幽霊犬と勘違いし驚いていた。しかし村長は照明の設計を変更し、幽霊犬の形が見えなくなったため、現れなくなった。",
+    };
+    question(puzzle, "幽霊犬は死にましたか？", {
+      yes: false,
+      critical: false,
+      solved: false,
+    });
+    question(puzzle, "幽霊犬は作りものでしたか？", {
+      yes: true,
+      critical: true,
+      solved: false,
+    });
   });
 });
