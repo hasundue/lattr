@@ -509,8 +509,6 @@ A: ${puzzle.answer}`,
 - Probably not
 - Not sure
 
-Do not include any other text in your reply.
-
 Desired format: <One of the options><./!>`,
       },
       user_question,
@@ -593,12 +591,12 @@ Desired format: <Yes/No>.`,
   const comment_content = solved
     ? "tells me that you think I have solved the puzzle"
     : critical
-    ? "subtly suggests what I should ask next to find the remaining mystery in the puzzle"
+    ? "subtly suggests which detail of the answer still remains unrevealed during the conversation"
     : "encourages me";
   const user_comment: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Add a witty comment to the reply, which ${comment_content}, in 40 characters or less.`,
+      `Add a comment to the reply, which ${comment_content}, in 40 characters or less.`,
   };
 
   //
@@ -624,7 +622,7 @@ Desired format: <Yes/No>.`,
       user_comment,
     ],
     stop: ["\n"],
-    temperature: 1,
+    top_p: (!solved && critical) ? 0.1 : 0.5,
     logit_bias,
   })
     .then((completion_comment) => {
