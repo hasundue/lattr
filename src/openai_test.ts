@@ -262,7 +262,7 @@ function question(
         break;
       default:
     }
-    if (res.critical !== undefined) {
+    if (expect.critical !== undefined) {
       assertEquals(
         res.critical,
         expect.critical,
@@ -271,7 +271,7 @@ function question(
         }, but got the opposite.`,
       );
     }
-    if (res.solved !== undefined) {
+    if (expect.solved !== undefined) {
       assertEquals(
         res.solved,
         expect.solved,
