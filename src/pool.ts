@@ -90,7 +90,7 @@ class Subscription {
   }
 
   update(filter: Filter, options: SubscriptionOptions = this.options) {
-    this.filter = { since: now(), ...filter };
+    this.filter = { ...this.filter, since: now(), ...filter };
     for (const [relay, sub] of this.subs) {
       this.subs.set(relay, sub.sub([filter], options));
       console.debug(`Updated subscription to ${relay}:`, filter);
