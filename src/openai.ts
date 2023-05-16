@@ -520,7 +520,7 @@ Desired format: <Yes/No><./!>`,
       {
         role: "user",
         content:
-          `Does the last conversation reveal an important information about the puzzle?
+          `Does the last exchange of conversation reveal any information described in the answer?
 
 Desired format: <Yes/No>.`,
       },
@@ -585,7 +585,7 @@ ${yesno} `,
     : {
       role: "user",
       content:
-        `Add an encouraging phrase to the reply, in 35 characters or less.
+        `Add a witty comment to the reply to encourage the questioner, in 35 characters or less.
 
 ${yesno} `,
     };
@@ -603,10 +603,12 @@ ${yesno} `,
       ],
       stop: ["\n"],
       temperature: 1,
-    }).then((completion_comment) => {
-      usages.push(completion_comment.usage);
-      return ` ${completion_comment.choices[0].message.content}`;
+      presence_penalty: 1,
     })
+      .then((completion_comment) => {
+        usages.push(completion_comment.usage);
+        return ` ${completion_comment.choices[0].message.content}`;
+      })
     : "";
 
   const reply = yesno + comment as ReplyToQuestion;
