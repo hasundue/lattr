@@ -1,11 +1,6 @@
-import { delay } from "https://deno.land/std@0.185.0/async/delay.ts";
-import { assert } from "https://deno.land/std@0.185.0/testing/asserts.ts";
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  it,
-} from "https://deno.land/std@0.185.0/testing/bdd.ts";
+import { delay } from "async";
+import { assert } from "testing/asserts";
+import { afterAll, beforeAll, describe, it } from "testing/bdd";
 import { RelayPool } from "./pool.ts";
 import { userIsVerified } from "./ident.ts";
 import { ensurePublicKey, PublicKey } from "./keys.ts";

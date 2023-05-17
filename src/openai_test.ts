@@ -1,9 +1,5 @@
-import { describe, it } from "https://deno.land/std@0.185.0/testing/bdd.ts";
-import {
-  assert,
-  assertEquals,
-  assertFalse,
-} from "https://deno.land/std@0.185.0/testing/asserts.ts";
+import { describe, it } from "testing/bdd";
+import { assert, assertEquals, assertFalse } from "testing/asserts";
 import { NostrPubkey } from "./nostr.ts";
 import {
   ApprovedMessage,

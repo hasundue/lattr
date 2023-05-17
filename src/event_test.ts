@@ -1,13 +1,6 @@
-import {
-  assert,
-  assertEquals,
-} from "https://deno.land/std@0.185.0/testing/asserts.ts";
-import {
-  beforeEach,
-  describe,
-  it,
-} from "https://deno.land/std@0.185.0/testing/bdd.ts";
-import { Event, generatePrivateKey, nip10 } from "npm:nostr-tools";
+import { assert, assertEquals } from "testing/asserts";
+import { beforeEach, describe, it } from "testing/bdd";
+import { Event, generatePrivateKey, nip10 } from "nostr-tools";
 import { createEvent, createReplyEvent, EventTemplateInit } from "./event.ts";
 import { PrivateKey } from "./keys.ts";
 

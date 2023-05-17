@@ -1,4 +1,4 @@
-import { Kind, parseReferences } from "npm:nostr-tools";
+import { Kind, parseReferences } from "nostr-tools";
 import { RelayUrl } from "./nostr.ts";
 import { RelayPool } from "./pool.ts";
 import { createEvent, createReplyEvent } from "./event.ts";

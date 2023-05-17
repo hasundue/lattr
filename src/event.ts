@@ -1,4 +1,4 @@
-import { distinct } from "https://deno.land/std@0.185.0/collections/distinct.ts";
+import { distinct } from "collections/distinct.ts";
 import {
   Event,
   EventTemplate,
@@ -9,7 +9,7 @@ import {
   signEvent,
   validateEvent,
   verifySignature,
-} from "npm:nostr-tools";
+} from "nostr-tools";
 import { RelayUrl } from "./nostr.ts";
 import { ensurePublicKey, PrivateKey } from "./keys.ts";
 import { Expand, now } from "./utils.ts";

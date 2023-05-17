@@ -1,4 +1,4 @@
-import { Kind } from "npm:nostr-tools";
+import { Kind } from "nostr-tools";
 import { RelayUrl } from "./nostr.ts";
 import { RelayPool } from "./pool.ts";
 import { ensurePublicKey, PrivateKey, PublicKey } from "./keys.ts";

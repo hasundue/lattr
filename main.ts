@@ -1,5 +1,5 @@
-import { signal } from "https://deno.land/std@0.185.0/signal/mod.ts";
-import { Kind, nip19 } from "npm:nostr-tools";
+import { signal } from "signal";
+import { Kind, nip19 } from "nostr-tools";
 import {
   closeUnsolvedPuzzles,
   createEvent,
