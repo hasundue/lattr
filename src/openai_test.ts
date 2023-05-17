@@ -263,7 +263,7 @@ function question(
   });
 }
 
-describe("夏祭りの幽霊犬", () => {
+describe("夏祭りの幽霊犬", { ignore: env_CI }, () => {
   const puzzle: Puzzle = {
     problem:
       "ある村では毎年夏に祭りが行われます。祭りの日にだけ、消えたはずの幽霊犬が姿を現し、村人たちを驚かせます。村長は不思議に思い、ある計画を立てました。次の祭の夜、幽霊犬は現れず、 祭りは平和に終わりました。どうして幽霊犬が現れなくなったのでしょうか？",
@@ -276,6 +276,7 @@ describe("夏祭りの幽霊犬", () => {
   });
   question(puzzle, "幽霊犬は作りものでしたか？", {
     reply: "affirm",
+    solved: false,
   });
 });
 
