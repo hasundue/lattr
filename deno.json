@@ -10,6 +10,7 @@
     "testing/asserts": "https://deno.land/std@0.187.0/testing/asserts.ts",
     "testing/bdd": "https://deno.land/std@0.187.0/testing/bdd.ts"
   },
+  "lock": false,
   "tasks": {
     "start": "deno run -A main.ts",
     "dev": "deno run --watch main.ts",
