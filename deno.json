@@ -1,7 +1,7 @@
 {
   "imports": {
     "async": "https://deno.land/std@0.187.0/async/mod.ts",
-    "collections/": "https://deno.land/std@0.185.0/collections/",
+    "collections/": "https://deno.land/std@0.187.0/collections/",
     "dotenv": "https://deno.land/std@0.187.0/dotenv/load.ts",
     "gpt-3-encoder": "npm:gpt-3-encoder",
     "nostr-tools": "npm:nostr-tools",
