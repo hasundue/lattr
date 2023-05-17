@@ -1,10 +1,20 @@
 {
+  "imports": {
+    "async": "https://deno.land/std@0.187.0/async/mod.ts",
+    "collections/": "https://deno.land/std@0.187.0/collections/",
+    "dotenv": "https://deno.land/std@0.187.0/dotenv/load.ts",
+    "gpt-3-encoder": "npm:gpt-3-encoder",
+    "nostr-tools": "npm:nostr-tools",
+    "openai": "npm:openai@3.2.1",
+    "signal": "https://deno.land/std@0.187.0/signal/mod.ts",
+    "testing/asserts": "https://deno.land/std@0.187.0/testing/asserts.ts",
+    "testing/bdd": "https://deno.land/std@0.187.0/testing/bdd.ts"
+  },
+  "lock": false,
   "tasks": {
     "start": "deno run --config deno.json -A main.ts",
     "dev": "deno run --watch main.ts",
     "test": "deno test -A --filter",
     "test:all": "deno test -A"
-  },
-  "importMap": "./import_map.json",
-  "lock": false
+  }
 }
