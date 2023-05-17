@@ -1,4 +1,4 @@
-import { retry } from "https://deno.land/std@0.185.0/async/mod.ts";
+import { retry } from "async";
 import {
   Event,
   Filter,
@@ -6,7 +6,7 @@ import {
   relayInit,
   Sub,
   SubscriptionOptions,
-} from "npm:nostr-tools";
+} from "nostr-tools";
 import { EventId, RelayUrl } from "./nostr.ts";
 import { now } from "./utils.ts";
 

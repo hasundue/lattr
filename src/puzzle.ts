@@ -1,4 +1,4 @@
-import { Event, Kind, nip10, nip19 } from "npm:nostr-tools";
+import { Event, Kind, nip10, nip19 } from "nostr-tools";
 import { ensurePublicKey, PrivateKey } from "./keys.ts";
 import { NostrPubkey, RelayUrl } from "./nostr.ts";
 import { RelayPool } from "./pool.ts";

@@ -1,5 +1,5 @@
-import "https://deno.land/std@0.185.0/dotenv/load.ts";
-import { retry } from "https://deno.land/std@0.185.0/async/mod.ts";
+import "dotenv";
+import { retry } from "async";
 import {
   ChatCompletionRequestMessage,
   Configuration,
@@ -8,8 +8,8 @@ import {
   CreateChatCompletionResponseChoicesInner,
   CreateModerationResponseResultsInnerCategories,
   OpenAIApi,
-} from "npm:openai@3.2.1";
-import { encode as encodeToTokens } from "npm:gpt-3-encoder";
+} from "openai";
+import { encode as encodeToTokens } from "gpt-3-encoder";
 import { Brand, Replace, Require } from "./utils.ts";
 import { NostrPubkey } from "./nostr.ts";
 
