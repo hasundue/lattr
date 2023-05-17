@@ -1,4 +1,10 @@
 {
+  "tasks": {
+    "start": "deno run --config deno.json -A main.ts",
+    "dev": "deno run --watch main.ts",
+    "test": "deno test -A --filter",
+    "test:all": "deno test -A"
+  },
   "imports": {
     "async": "https://deno.land/std@0.187.0/async/mod.ts",
     "collections/": "https://deno.land/std@0.187.0/collections/",
@@ -10,11 +16,5 @@
     "testing/asserts": "https://deno.land/std@0.187.0/testing/asserts.ts",
     "testing/bdd": "https://deno.land/std@0.187.0/testing/bdd.ts"
   },
-  "lock": false,
-  "tasks": {
-    "start": "deno run --config deno.json -A main.ts",
-    "dev": "deno run --watch main.ts",
-    "test": "deno test -A --filter",
-    "test:all": "deno test -A"
-  }
+  "lock": false
 }
