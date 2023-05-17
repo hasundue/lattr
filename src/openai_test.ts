@@ -132,7 +132,6 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assertFalse(res.reply.startsWith("Yes"));
-      assertFalse(res.critical);
       assertFalse(res.solved);
     });
     it("Did he timeleap?", async (t) => {
@@ -141,7 +140,6 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assertFalse(res.reply.startsWith("Yes"));
-      assertFalse(res.critical);
       assertFalse(res.solved);
     });
     it("Is it drawn by a blind artist?", async (t) => {
@@ -150,7 +148,6 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("No"));
-      assertFalse(res.critical);
       assertFalse(res.solved);
     });
     it("Did he die from a heart attack?", async (t) => {
@@ -177,7 +174,6 @@ describe("createReplyToQuestion", () => {
         question: t.name as ValidQuestion,
       });
       assert(res.reply.startsWith("Yes"));
-      assert(res.critical);
       assertFalse(res.solved);
     });
     it("He is a beekeeper!", async (t) => {
@@ -188,12 +184,10 @@ describe("createReplyToQuestion", () => {
           {
             question: "Does he watch creatures?" as ValidQuestion,
             reply: "Yes! Keep trying!" as ReplyToQuestion,
-            critical: true,
           },
         ],
       });
       assert(res.reply.startsWith("Yes"));
-      assert(res.critical);
       assertFalse(res.solved);
     });
   });
@@ -220,7 +214,6 @@ function question(
   question: string,
   expect: {
     reply?: "yes" | "no" | "affirm" | "negate" | "not sure";
-    critical?: boolean;
     solved?: boolean;
   },
 ) {
@@ -262,15 +255,6 @@ function question(
         break;
       default:
     }
-    if (expect.critical !== undefined) {
-      assertEquals(
-        res.critical,
-        expect.critical,
-        `Expected to be ${
-          expect.critical ? "critical" : "not critical"
-        }, but got the opposite.`,
-      );
-    }
     if (expect.solved !== undefined) {
       assertEquals(
         res.solved,
@@ -292,12 +276,10 @@ describe("夏祭りの幽霊犬", () => {
   };
   question(puzzle, "幽霊犬は死にましたか？", {
     reply: "no",
-    critical: false,
     solved: false,
   });
   question(puzzle, "幽霊犬は作りものでしたか？", {
     reply: "affirm",
-    critical: true,
   });
 });
 
@@ -310,7 +292,6 @@ describe("An empty art gallery", () => {
   };
   question(puzzle, "It was on a timer.", {
     reply: "yes",
-    critical: true,
     solved: false,
   });
 });

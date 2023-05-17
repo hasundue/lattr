@@ -442,7 +442,6 @@ Desired format: <Yes/No>.`,
 export type Chat = {
   question: ValidQuestion;
   reply: ReplyToQuestion;
-  critical: boolean;
 };
 
 export type ReplyToQuestion = Brand<string, "ReplyToQuestion">;
@@ -501,7 +500,8 @@ A: ${puzzle.answer}`,
       ...chat_context,
       {
         role: "system",
-        content: `Reply to the next message based on the information given in the puzzle.
+        content:
+          `Reply to the next message based on the information given in the puzzle.
 
 Desired format: <Yes/No><./!>`,
       },
@@ -514,67 +514,27 @@ Desired format: <Yes/No><./!>`,
   const assistant_yesno = completion_yesno.choices[0].message;
   const yesno = assistant_yesno.content;
 
-  const user_critical: ChatCompletionRequestMessage = {
-    role: "user",
-    content: `Do you think that I have found a new piece of the answer?
-
-Desired format: <Yes/No>.`,
-  };
-
-  const completion_critical = await createChatCompletion({
+  const solved = await createChatCompletion({
     model: "gpt-3.5",
     messages: [
       user_init,
       assistant_puzzle,
-      // ...chat_context, // not sure if we should include the context here
+      ...chat_context,
       user_question,
       assistant_yesno,
-      user_critical,
-    ],
-    temperature: 0,
-    stop: [",", ".", "!"],
-  });
-  usages.push(completion_critical.usage);
-
-  const assistant_critical = completion_critical.choices[0].message;
-  const critical = assistant_critical.content.startsWith("Yes");
-
-  const chat_critical = context?.filter((chat) => chat.critical)
-    .map((chat): ChatCompletionRequestMessage[] => [
       {
         role: "user",
-        content: chat.question,
-      },
-      {
-        role: "assistant",
-        content: chat.reply,
-      },
-    ]).flat() ?? [];
-
-  const solved = critical
-    ? await createChatCompletion({
-      model: "gpt-3.5",
-      messages: [
-        user_init,
-        assistant_puzzle,
-        ...chat_critical,
-        user_question,
-        assistant_yesno,
-        {
-          role: "user",
-          content:
-            `Does the conversation above reveal every detail of the answer?
+        content: `Does the conversation above reveal every detail of the answer?
 
 Desired format: <Yes/No>.`,
-        },
-      ],
-      stop: [".", ",", "!"],
-      temperature: 0,
-    }).then((completion_solved) => {
-      usages.push(completion_solved.usage);
-      return completion_solved.choices[0].message.content.startsWith("Yes");
-    })
-    : false;
+      },
+    ],
+    stop: [".", ",", "!"],
+    temperature: 0,
+  }).then((completion_solved) => {
+    usages.push(completion_solved.usage);
+    return completion_solved.choices[0].message.content.startsWith("Yes");
+  });
 
   //
   // Create an additional comment to the reply if it is just a Yes/No.
@@ -582,19 +542,15 @@ Desired format: <Yes/No>.`,
   // If the puzzle is solved, add a sentence to praise them in the reply.
   // If not, add a sentence to encourage them to ask another question.
   //
-  const comment_style = critical
-    ? "a comment"
-    : "a witty comment";
   const comment_content = solved
     ? "tells me that you think I have solved the puzzle"
-    : critical
-    ? "subtly suggests what I should figure out next, which still remains unrevealed during the conversation"
-    : "subtly provides a hint to the puzzle without revealing specific information";
-  const comment_length = critical ? 70 : 40;
+    : "subtly provides a hint to the puzzle, without revealing specific information";
   const user_comment: ChatCompletionRequestMessage = {
     role: "user",
     content:
-      `Add ${comment_style} to the reply, which ${comment_content}, in ${comment_length} characters or less.`,
+      `Add an witty comment to the reply, which ${comment_content}, in 40 characters or less.
+
+${yesno} `,
   };
 
   //
@@ -609,30 +565,30 @@ Desired format: <Yes/No>.`,
   );
 
   // Ask ChatGPT for a completion
-  const comment = (critical || solved || yesno.split(" ").length <= 2)
+  const comment = (solved || yesno.split(" ").length <= 2)
     ? await createChatCompletion({
-    model: "gpt-3.5",
-    messages: [
-      user_init,
-      assistant_puzzle,
-      ...chat_context,
-      user_question,
-      assistant_yesno,
-      user_comment,
-    ],
-    stop: ["\n"],
-    temperature: solved ? 1 : 0.2,
-    logit_bias,
-  })
-    .then((completion_comment) => {
-      usages.push(completion_comment.usage);
-      return ` ${completion_comment.choices[0].message.content}`;
+      model: "gpt-3.5",
+      messages: [
+        user_init,
+        assistant_puzzle,
+        ...chat_context,
+        user_question,
+        assistant_yesno,
+        user_comment,
+      ],
+      stop: ["\n"],
+      temperature: solved ? 1 : 0.2,
+      logit_bias,
     })
+      .then((completion_comment) => {
+        usages.push(completion_comment.usage);
+        return ` ${completion_comment.choices[0].message.content}`;
+      })
     : "";
 
   const reply = yesno + comment as ReplyToQuestion;
 
-  return { reply, critical, solved, usages };
+  return { reply, solved, usages };
 }
 
 export type ResultAnnounce = {
